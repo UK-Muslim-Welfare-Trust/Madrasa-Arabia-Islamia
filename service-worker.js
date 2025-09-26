@@ -25,7 +25,7 @@ onBackgroundMessage(messaging, (payload) => {
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
         body: payload.notification.body,
-        icon: '/assets/img/fav192.png' // Ensure this path is correct from the root
+        icon: '/fav192.png' // Icon must be at the root of your site
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
@@ -34,37 +34,51 @@ onBackgroundMessage(messaging, (payload) => {
 
 // --- 2. CACHING AND LIFECYCLE ---
 
-const CACHE_NAME = 'wcm-cache-v5'; // Increment version on any change to the asset list
+// Increment the version number whenever you update this file
+const CACHE_NAME = 'wcm-cache-v2'; 
 const urlsToCache = [
-  // Foundational Files
+  // --- Foundational & HTML Pages ---
   '/',
   '/index.html',
-  '/manifest.json',
-
-  // Pages
-  '/prayerTimetable.html',
   '/donations.html',
   '/login.html',
+  '/prayerTimetable.html',
+  '/prayerView.html',
+  '/admin/admin.html',
+  '/manifest.json',
 
-  // Styles (Ensure all your CSS is bundled here or add individual files)
-  '/css/style.css', // Assuming this is your main stylesheet
-  '/bootstrap/css/bootstrap.min.css',
+  // --- Stylesheets ---
+  '/assets/css/styles.min.css',
 
-  // Scripts
-  '/js/js/donation.min.js',
-  '/js/js/app.mjs',
-  '/js/js/firebase-init.mjs',
-  '/js/js/indexScript.mjs',
+  // --- Core Scripts ---
+  '/assets/js/script.min.js',
+  '/assets/js/js/donation.min.js',
+  
+  // --- Module Scripts ---
+  '/assets/js/js/app.mjs',
+  '/assets/js/js/firebase-init.mjs',
+  '/assets/js/js/auth.mjs',
+  '/assets/js/js/indexScript.mjs',
+  '/assets/js/js/prayerTimetable.mjs',
+  '/assets/js/js/login.mjs',
+  '/assets/js/js/adminScript.mjs',
+  '/assets/js/js/notifications.mjs',
 
-  // Key Images
-  '/img/logo-mosque.svg', // Double-check this path
+  // --- Key Images & Icons ---
+  '/assets/img/fav192.png',
+  '/assets/img/fav512.png',
+  '/assets/img/img/logo-mosque.svg',
+  '/assets/img/img/hero-bg.jpg',
+  '/assets/img/img/qr-donate.svg',
   '/fav192.png',
   '/fav512.png',
-  
-  // External Libraries
-  'https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Dancing+Script&family=Playfair+Display:wght@500&family=Work+Sans&display=swap'
+
+  // --- Supporting Library Images for a better offline experience ---
+  '/assets/img/lib/lightbox/images/close.png',
+  '/assets/img/lib/lightbox/images/loading.gif',
+  '/assets/img/lib/lightbox/images/next.png',
+  '/assets/img/lib/lightbox/images/prev.png',
+  '/assets/img/lib/owlcarousel/assets/owl.video.play.png'
 ];
 
 // INSTALL: Pre-cache all the essential assets for offline use.
@@ -100,15 +114,14 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     // Always go to the network for APIs and Firebase services.
     if (event.request.url.includes('firebase') || event.request.url.includes('aladhan.com')) {
-        return event.respondWith(fetch(event.request));
+        // Let the request continue to the network without intervention.
+        return;
     }
-
     // For HTML pages, use a "Network First, falling back to Cache" strategy.
-    // This ensures users always get the latest version of the page if online.
     if (event.request.mode === 'navigate') {
         event.respondWith(
             fetch(event.request).catch(() => {
-                console.log('[Service Worker] Fetch failed, returning cached page for:', event.request.url);
+                console.log('[Service Worker] Network fetch failed, returning cached page for:', event.request.url);
                 return caches.match(event.request);
             })
         );
@@ -116,7 +129,6 @@ self.addEventListener('fetch', event => {
     }
 
     // For all other requests (CSS, JS, images), use a "Cache First" strategy.
-    // This is fast and efficient for static assets.
     event.respondWith(
         caches.match(event.request).then(response => {
             return response || fetch(event.request);
