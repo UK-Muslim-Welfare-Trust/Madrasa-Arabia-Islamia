@@ -1,5 +1,4 @@
-// IMPORTANT: This file must be placed in the ROOT directory of your website,
-// in the same folder as your index.html file.
+// IMPORTANT: This file must be placed in the ROOT directory of your website.
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
 import { getMessaging, onBackgroundMessage } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-sw.js';
@@ -15,105 +14,121 @@ const firebaseConfig = {
     measurementId: "G-NXER4ENDE0"
 };
 
-// Initialize the Firebase app in the service worker
+// Initialize Firebase app and messaging
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// Handle background messages
+// --- 1. FIREBASE BACKGROUND MESSAGE HANDLER ---
 onBackgroundMessage(messaging, (payload) => {
-    console.log('[service-worker.js] Received background message ', payload);
+    console.log('[Service Worker] Received background message: ', payload);
 
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
         body: payload.notification.body,
-        icon: '/assets/img/fav192.png'
+        icon: '/assets/img/fav192.png' // Ensure this path is correct from the root
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 
-// --- Standard Service Worker Lifecycle ---
+// --- 2. CACHING AND LIFECYCLE ---
 
-const CACHE_NAME = 'wcm-cache-v4'; // Incremented cache version
+const CACHE_NAME = 'wcm-cache-v5'; // Increment version on any change to the asset list
 const urlsToCache = [
-  // HTML Pages
+  // Foundational Files
   '/',
   '/index.html',
+  '/manifest.json',
+
+  // Pages
   '/prayerTimetable.html',
   '/donations.html',
   '/login.html',
-  '/admin/admin.html',
-  '/manifest.json',
 
-  // CSS
-  '/assets/css/styles.min.css',
+  // Styles (Ensure all your CSS is bundled here or add individual files)
+  '/css/style.css', // Assuming this is your main stylesheet
+  '/bootstrap/css/bootstrap.min.css',
 
-  // Core JS - non-modules
-  '/assets/js/script.min.js',
-  '/assets/js/js/donation.min.js',
-  
-  // Module entry points
-  '/assets/js/js/app.mjs',
-  '/assets/js/js/firebase-init.mjs',
-  '/assets/js/js/auth.mjs',
-  '/assets/js/js/indexScript.mjs',
-  '/assets/js/js/prayerTimetable.mjs',
-  '/assets/js/js/login.mjs',
-  '/assets/js/js/adminScript.mjs',
+  // Scripts
+  '/js/js/donation.min.js',
+  '/js/js/app.mjs',
+  '/js/js/firebase-init.mjs',
+  '/js/js/indexScript.mjs',
 
   // Key Images
-  '/assets/img/img/logo-mosque.svg',
-  '/assets/img/fav192.png',
-  '/assets/img/fav512.png',
-  '/assets/img/img/hero-bg.jpg',
-
+  '/img/logo-mosque.svg', // Double-check this path
+  '/fav192.png',
+  '/fav512.png',
+  
   // External Libraries
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js',
   'https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js',
-  'https://fonts.googleapis.com/css2?family=Dancing+Script&family=Playfair+Display:wght@500&family=Work+Sans&display=swap',
-  'https://use.fontawesome.com/releases/v5.12.0/css/all.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css',
+  'https://fonts.googleapis.com/css2?family=Dancing+Script&family=Playfair+Display:wght@500&family=Work+Sans&display=swap'
 ];
 
+// INSTALL: Pre-cache all the essential assets for offline use.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching assets');
+        console.log('[Service Worker] Caching shell assets.');
         return cache.addAll(urlsToCache).catch(err => {
-            console.error("Failed to cache some assets:", err);
+            console.error("[Service Worker] Failed to cache some assets during install:", err);
         });
       })
   );
 });
 
+// ACTIVATE: Clean up old, unused caches.
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[Service Worker] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
 
+// FETCH: Serve assets from cache or network.
 self.addEventListener('fetch', event => {
-    // For Firebase and external API calls, always go to the network.
+    // Always go to the network for APIs and Firebase services.
     if (event.request.url.includes('firebase') || event.request.url.includes('aladhan.com')) {
-        event.respondWith(fetch(event.request));
+        return event.respondWith(fetch(event.request));
+    }
+
+    // For HTML pages, use a "Network First, falling back to Cache" strategy.
+    // This ensures users always get the latest version of the page if online.
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                console.log('[Service Worker] Fetch failed, returning cached page for:', event.request.url);
+                return caches.match(event.request);
+            })
+        );
         return;
     }
 
+    // For all other requests (CSS, JS, images), use a "Cache First" strategy.
+    // This is fast and efficient for static assets.
     event.respondWith(
-        caches.match(event.request)
-        .then(response => {
-            // Cache hit - return response
-            if (response) {
-                return response;
-            }
-            // Not in cache - fetch from network
-            return fetch(event.request);
+        caches.match(event.request).then(response => {
+            return response || fetch(event.request);
         })
     );
 });
 
+// --- 3. NOTIFICATION CLICK HANDLER ---
 self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] Notification clicked.');
   event.notification.close();
   event.waitUntil(
     clients.openWindow('/')
   );
 });
-
