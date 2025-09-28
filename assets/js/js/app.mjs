@@ -1,1 +1,147 @@
-import{requestLocalNotificationPermission as e,scheduleJamaatNotifications as t,cancelJamaatNotifications as o,requestPushNotificationPermission as n}from"./notifications.mjs";import{initializeApp as a}from"./firebase-init.mjs";import{initializeAppCheck as i,ReCaptchaV3Provider as s}from"firebase/app-check";i(app,{provider:new s("6LdrG9crAAAAABx64V4r5d4iAOIyyeWB4Ugwexv3"),isTokenAutoRefreshEnabled:!0});let c=null;const l=()=>{if("undefined"==typeof jQuery)return console.error("jQuery is not loaded.");const e=jQuery;setTimeout((()=>{e("#spinner").removeClass("show")}),1),e(window).scroll((function(){e(this).scrollTop()>300?e(".sticky-top").addClass("shadow-sm").css("top","0px"):e(".sticky-top").removeClass("shadow-sm").css("top","-150px")})),e(window).scroll((function(){e(this).scrollTop()>100?e(".back-to-top").fadeIn("slow"):e(".back-to-top").fadeOut("slow")})),e(".back-to-top").click((function(){return e("html, body").animate({scrollTop:0},1500,"easeInOutExpo"),!1}))};document.addEventListener("DOMContentLoaded",(async()=>{let a=null;if("serviceWorker"in navigator)try{a=await navigator.serviceWorker.register("/firebase-messaging-sw.js",{type:"module"}),console.log("ServiceWorker registration successful.",a)}catch(e){console.error("ServiceWorker registration failed: ",e)}if((o=>{const a=window.matchMedia("(display-mode: standalone)").matches,i=localStorage.getItem("notificationSetupComplete");if(a&&!i){const a=document.getElementById("notification-prompt-modal"),i=document.getElementById("enable-notifications-btn"),s=document.getElementById("subscribeAnnouncementsModal"),c=document.getElementById("subscribeJamaatModal");if(a&&i&&s&&c){const l=new bootstrap.Modal(a);l.show(),i.addEventListener("click",(async()=>{let a=!1,i=!1;s.checked&&(o?(a=await n(o),a&&localStorage.setItem("announcementNotificationsEnabled","true")):(console.error("Service worker not registered, cannot request push permission."),alert("Could not set up push notifications. Please try again later."))),c.checked&&(i=await e(),i&&(localStorage.setItem("jamaatNotificationsEnabled","true"),t())),s.checked&&a||c.checked&&i?(localStorage.setItem("notificationSetupComplete","true"),alert("Notification settings saved!")):(s.checked||c.checked)&&alert("Could not enable one or more notification types. Please grant permission when prompted."),l.hide()}))}}})(a),window.matchMedia("(display-mode: standalone)").matches){const i=document.getElementById("install-button");i&&(i.style.display="none"),(a=>{if(!window.location.pathname.includes("prayerTimetable.html"))return;const i=document.getElementById("notification-controls");i&&(i.style.display="block");const s=document.getElementById("jamaat-notifications-toggle");s&&("true"===localStorage.getItem("jamaatNotificationsEnabled")&&(s.checked=!0,"granted"===Notification.permission&&t()),s.addEventListener("change",(async()=>{s.checked?await e()?(localStorage.setItem("jamaatNotificationsEnabled","true"),t()):s.checked=!1:(localStorage.setItem("jamaatNotificationsEnabled","false"),o())})));const c=document.getElementById("announcement-notifications-toggle");c&&("true"===localStorage.getItem("announcementNotificationsEnabled")&&(c.checked=!0),c.addEventListener("change",(async()=>{c.checked?a?await n(a)?localStorage.setItem("announcementNotificationsEnabled","true"):c.checked=!1:(console.error("Service worker not registered, cannot toggle push notifications."),c.checked=!1):localStorage.setItem("announcementNotificationsEnabled","false")})))})(a)}else{(()=>{const e=document.getElementById("install-button");e&&(e.style.display="none",window.addEventListener("beforeinstallprompt",(t=>{t.preventDefault(),c=t,e.style.display="block"})),e.addEventListener("click",(async()=>{c&&(c.prompt(),await c.userChoice,c=null,e.style.display="none")})))})();const e=document.getElementById("notification-controls");e&&(e.style.display="none")}l()}));
+// js/js/app.mjs
+
+import { subscribeToTopic, unsubscribeFromTopic, fetchAndScheduleJamaatReminders } from "./notifications.mjs";
+import { initializeApp } from "./firebase-init.mjs";
+
+let deferredInstallPrompt = null;
+
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function setupInstallButton() {
+    const installButton = document.getElementById('install-button');
+    if (!installButton) return;
+    installButton.style.display = 'none';
+
+    if (isIOS()) {
+        installButton.style.display = 'block';
+        installButton.addEventListener('click', () => {
+            alert('To install, tap the Share button, then scroll down and tap "Add to Home Screen".');
+        });
+    } else {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            installButton.style.display = 'block';
+        });
+        installButton.addEventListener('click', async () => {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt = null;
+                installButton.style.display = 'none';
+            }
+        });
+    }
+}
+
+function handleFirstLaunchPrompt(swRegistration) {
+    if (window.matchMedia('(display-mode: standalone)').matches && !localStorage.getItem('notificationSetupComplete')) {
+        const modalEl = document.getElementById('notification-prompt-modal');
+        const saveBtn = document.getElementById('enable-notifications-btn');
+        const announcementsCheck = document.getElementById('subscribeAnnouncementsModal');
+        const jamaatCheck = document.getElementById('subscribeJamaatModal');
+        const spinner = document.getElementById('notification-modal-spinner');
+
+        if (!modalEl || !saveBtn || !announcementsCheck || !jamaatCheck || !spinner) return;
+        
+        const notificationModal = new bootstrap.Modal(modalEl);
+        notificationModal.show();
+
+        saveBtn.addEventListener('click', async () => {
+            spinner.classList.remove('d-none');
+            saveBtn.disabled = true;
+            try {
+                let success = false;
+                if (announcementsCheck.checked && await subscribeToTopic('announcements', swRegistration)) {
+                    localStorage.setItem('announcementNotificationsEnabled', 'true');
+                    success = true;
+                }
+                if (jamaatCheck.checked && await subscribeToTopic('jamaat', swRegistration)) {
+                    localStorage.setItem('jamaatNotificationsEnabled', 'true');
+                    success = true;
+                }
+                if (success) {
+                    localStorage.setItem('notificationSetupComplete', 'true');
+                    alert('Notification settings saved!');
+                } else if (announcementsCheck.checked || jamaatCheck.checked) {
+                    alert("Could not enable notifications. Please grant permission when prompted.");
+                }
+                notificationModal.hide();
+            } finally {
+                spinner.classList.add('d-none');
+                saveBtn.disabled = false;
+            }
+        });
+    }
+}
+
+function setupNotificationToggles(swRegistration) {
+    // Prayer Timetable Page Toggle
+    if (window.location.pathname.includes("prayerTimetable.html")) {
+        const jamaatToggle = document.getElementById('jamaat-notifications-toggle');
+        if (jamaatToggle) {
+            jamaatToggle.checked = localStorage.getItem('jamaatNotificationsEnabled') === 'true';
+            jamaatToggle.addEventListener('change', async (e) => {
+                if (e.target.checked) {
+                    const success = await subscribeToTopic('jamaat', swRegistration);
+                    if (!success) e.target.checked = false;
+                    localStorage.setItem('jamaatNotificationsEnabled', String(success));
+                } else {
+                    await unsubscribeFromTopic('jamaat', swRegistration);
+                    localStorage.setItem('jamaatNotificationsEnabled', 'false');
+                }
+            });
+        }
+    }
+
+    // Main Index Page Toggle
+    const toggleContainer = document.getElementById('announcement-toggle-container');
+    const announcementToggle = document.getElementById('announcement-notifications-toggle-main');
+    if (toggleContainer && announcementToggle && window.matchMedia('(display-mode: standalone)').matches) {
+        toggleContainer.style.display = 'block';
+        announcementToggle.checked = localStorage.getItem('announcementNotificationsEnabled') === 'true';
+        announcementToggle.addEventListener('change', async (e) => {
+            if (e.target.checked) {
+                const success = await subscribeToTopic('announcements', swRegistration);
+                if (!success) e.target.checked = false;
+                localStorage.setItem('announcementNotificationsEnabled', String(success));
+            } else {
+                await unsubscribeFromTopic('announcements', swRegistration);
+                localStorage.setItem('announcementNotificationsEnabled', 'false');
+            }
+        });
+    }
+}
+
+const initJQueryPlugins = () => {
+    // Your existing jQuery UI setup function, unchanged.
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    let swRegistration = null;
+    if ('serviceWorker' in navigator) {
+        try {
+            swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { type: "module" });
+        } catch (err) {
+            console.error('ServiceWorker registration failed:', err);
+        }
+    }
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        document.getElementById('install-button')?.style.setProperty('display', 'none', 'important');
+        document.getElementById('notification-controls')?.style.display = 'block';
+        if (swRegistration) {
+            handleFirstLaunchPrompt(swRegistration);
+            setupNotificationToggles(swRegistration);
+            if (localStorage.getItem('jamaatNotificationsEnabled') === 'true') {
+                fetchAndScheduleJamaatReminders(); // Proactive schedule on app start
+            }
+        }
+    } else {
+        setupInstallButton();
+        document.getElementById('notification-controls')?.style.display = 'none';
+    }
+    
+    initJQueryPlugins();
+});
