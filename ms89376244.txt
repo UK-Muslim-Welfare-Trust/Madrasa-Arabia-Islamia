@@ -1,5 +1,0 @@
-﻿{
-  "Description": "Domain ownership verification file for Microsoft 365 - place in the website root",
-  "Domain": "wakefieldcentralmosque.co.uk",
-  "Id": "7b81cec2-586e-4325-af63-af8ef84928f4"
-}
