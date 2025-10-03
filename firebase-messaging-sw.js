@@ -2,7 +2,8 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
 import { getMessaging, onBackgroundMessage } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-sw.js';
-import { fetchAndScheduleJamaatReminders } from '/assets/js/js/notifications.mjs';
+// The local scheduling import is no longer needed.
+// import { fetchAndScheduleJamaatReminders } from '/assets/js/js/notifications.mjs';
 
 // --- 1. FIREBASE INITIALIZATION & MESSAGE HANDLING ---
 const firebaseConfig = {
@@ -21,11 +22,8 @@ getMessaging(app);
 onBackgroundMessage(getMessaging(), (payload) => {
     console.log('[SW] Background message received:', payload);
 
-    if (payload.data && payload.data.type === 'SCHEDULE_REMINDERS') {
-        console.log('[SW] Schedule signal received. Scheduling local reminders.');
-        return fetchAndScheduleJamaatReminders();
-    }
-
+    // The logic to trigger local scheduling is now removed.
+    // The service worker's only job is to show the notification sent from the cloud.
     if (payload.notification) {
         console.log('[SW] Displaying visible notification.');
         return self.registration.showNotification(
