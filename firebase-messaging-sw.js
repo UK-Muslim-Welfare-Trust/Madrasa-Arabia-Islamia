@@ -1,11 +1,11 @@
 // firebase-messaging-sw.js
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
-import { getMessaging, onBackgroundMessage } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-sw.js';
-
-// The local scheduling import has been removed as it's no longer needed.
+// Use the classic 'importScripts' instead of the module 'import'
+importScripts('https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js');
 
 // --- 1. FIREBASE INITIALIZATION & MESSAGE HANDLING ---
+// NOTE: We use the "compat" versions of the library with importScripts
 const firebaseConfig = {
     apiKey: "AIzaSyDuq7jYQcKDKY3UWNxQwP51fKRwjCERuvo",
     authDomain: "wakefield-central-mosque.firebaseapp.com",
@@ -16,14 +16,12 @@ const firebaseConfig = {
     measurementId: "G-NXER4ENDE0"
 };
 
-const app = initializeApp(firebaseConfig);
-getMessaging(app);
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
-onBackgroundMessage(getMessaging(), (payload) => {
+messaging.onBackgroundMessage((payload) => {
     console.log('[SW] Background message received:', payload);
 
-    // The old logic to trigger local scheduling has been removed.
-    // The service worker's only job is to show the notification sent from your cloud function.
     if (payload.notification) {
         console.log('[SW] Displaying visible notification.');
         const notificationTitle = payload.notification.title;
@@ -31,12 +29,12 @@ onBackgroundMessage(getMessaging(), (payload) => {
             body: payload.notification.body,
             icon: payload.notification.icon || '/fav192.png'
         };
-        return self.registration.showNotification(notificationTitle, notificationOptions);
+        self.registration.showNotification(notificationTitle, notificationOptions);
     }
 });
 
 
-// --- 2. CACHING AND LIFECYCLE (This section is unchanged) ---
+// --- 2. CACHING AND LIFECYCLE (Unchanged) ---
 const CACHE_NAME = 'wcm-cache-v2';
 const urlsToCache = [
   '/', '/index.html', '/donations.html', '/login.html', '/prayerTimetable.html',
@@ -90,7 +88,7 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// --- 3. NOTIFICATION CLICK HANDLER (This section is unchanged) ---
+// --- 3. NOTIFICATION CLICK HANDLER (Unchanged) ---
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(clients.openWindow('/'));
