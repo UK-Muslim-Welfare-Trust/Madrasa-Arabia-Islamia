@@ -14,23 +14,24 @@ const ARTIFACTS_PATH = "artifacts/masjid-connect-app/public/data";
 
 /**
  * 1. Callable function for clients to manage their topic subscriptions.
- * (This function is unchanged)
+ * This is the corrected version that allows public access.
  */
-exports.manageSubscription = onCall(async (request) => {
+exports.manageSubscription = onCall({ invoker: "public" }, async (request) => {
   const { token, topic, action } = request.data;
 
   if (!token || !topic || !action) {
+    logger.error("Request was missing required parameters.", { token, topic, action });
     throw new HttpsError("invalid-argument", "Missing required parameters.");
   }
 
   try {
     if (action === "subscribe") {
       await messaging.subscribeToTopic(token, topic);
-      logger.log(`Subscribed token ${token.substring(0, 20)}... to topic: ${topic}`);
+      logger.log(`Subscribed token to topic: ${topic}`);
       return { success: true, message: `Successfully subscribed to ${topic}` };
     } else if (action === "unsubscribe") {
       await messaging.unsubscribeFromTopic(token, topic);
-      logger.log(`Unsubscribed token ${token.substring(0, 20)}... from topic: ${topic}`);
+      logger.log(`Unsubscribed token from topic: ${topic}`);
       return { success: true, message: `Successfully unsubscribed from ${topic}` };
     } else {
       throw new HttpsError("invalid-argument", "Invalid action specified.");
@@ -41,10 +42,8 @@ exports.manageSubscription = onCall(async (request) => {
   }
 });
 
-
 /**
  * 2. Firestore-triggered function to send notifications for new announcements.
- * (This function is unchanged)
  */
 exports.sendAnnouncementNotification = onDocumentCreated(
   `${ARTIFACTS_PATH}/announcements/{announcementId}`,
@@ -56,7 +55,6 @@ exports.sendAnnouncementNotification = onDocumentCreated(
     }
 
     logger.log("New announcement detected, sending notification to 'announcements' topic.");
-
     const payload = {
       notification: {
         title: announcement.title || "New Announcement",
@@ -67,28 +65,24 @@ exports.sendAnnouncementNotification = onDocumentCreated(
     };
 
     try {
-        await messaging.send(payload);
-        logger.log("Announcement notification sent successfully.");
+      await messaging.send(payload);
+      logger.log("Announcement notification sent successfully.");
     } catch (error) {
-        logger.error("Error sending announcement notification:", error);
+      logger.error("Error sending announcement notification:", error);
     }
   }
 );
 
-
 /**
  * 3. Scheduled function to send Jama'at reminders.
- * -- THIS IS THE UPDATED FUNCTION --
  */
 exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
   logger.log("Running scheduled job to check for Jama'at reminders.");
 
-  // Convert current time to UK time to handle GMT/BST correctly
   const nowInLondon = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/London" }));
   const currentMinutes = nowInLondon.getHours() * 60 + nowInLondon.getMinutes();
-  const isFriday = nowInLondon.getDay() === 5; // 5 = Friday
+  const isFriday = nowInLondon.getDay() === 5;
 
-  // --- Fetch base Jama'at times ---
   const prayerTimesRef = db.doc(`${ARTIFACTS_PATH}/prayerTimes/today`);
   const prayerTimesDoc = await prayerTimesRef.get();
 
@@ -98,7 +92,6 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
   }
   const times = prayerTimesDoc.data();
 
-  // --- **FIX 1: Fetch Maghrib time from the calendar** ---
   const day = String(nowInLondon.getDate()).padStart(2, '0');
   const month = String(nowInLondon.getMonth() + 1).padStart(2, '0');
   const dateId = `${day}-${month}`;
@@ -106,24 +99,19 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
   const calendarDoc = await calendarRef.get();
 
   if (calendarDoc.exists() && calendarDoc.data().Maghrib) {
-    times.Maghrib = calendarDoc.data().Maghrib; // Overwrite Maghrib with the correct start time
-    logger.log(`Using Maghrib start time from calendar: ${times.Maghrib}`);
+    times.Maghrib = calendarDoc.data().Maghrib;
   }
 
   const prayers = ["Fajr", "Zuhr", "Asr", "Maghrib", "Isha", "Jumma"];
 
   for (const prayer of prayers) {
-    // --- **FIX 2 & 3: Handle Friday prayer logic** ---
-    if (prayer === 'Zuhr' && isFriday) {
-      continue; // Don't send a Zuhr reminder on Friday
-    }
-    if (prayer === 'Jumma' && !isFriday) {
-      continue; // Only send a Jumma reminder on Friday
+    if ((prayer === 'Zuhr' && isFriday) || (prayer === 'Jumma' && !isFriday)) {
+      continue;
     }
 
     const timeStr = times[prayer];
     if (!timeStr || times[`${prayer}_reminderSent`]) {
-      continue; // Skip if time is not set or reminder has been sent
+      continue;
     }
 
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -132,7 +120,6 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
 
     if (timeDifference >= 15 && timeDifference < 30) {
       logger.log(`Jama'at for ${prayer} is approaching. Sending reminder.`);
-
       const payload = {
         notification: {
           title: `${prayer} Jama'at Reminder`,
@@ -147,7 +134,7 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
         await prayerTimesRef.update({ [`${prayer}_reminderSent`]: true });
         logger.log(`Successfully sent reminder for ${prayer}.`);
       } catch (error) {
-          logger.error(`Failed to send reminder for ${prayer}:`, error);
+        logger.error(`Failed to send reminder for ${prayer}:`, error);
       }
     }
   }
@@ -155,18 +142,15 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
 
 /**
  * 4. Scheduled function to reset the reminder flags for the next day.
- * Runs every day at 1:00 AM UK time.
  */
 exports.resetReminderFlags = onSchedule({
-  schedule: "0 1 * * *", // This is a cron expression for 1:00 AM
+  schedule: "0 3 * * *",
   timeZone: "Europe/London",
 }, async () => {
   logger.log("Running daily job to reset reminder flags.");
-
   const prayerTimesRef = db.doc(`${ARTIFACTS_PATH}/prayerTimes/today`);
-
+  
   try {
-    // We use FieldValue.delete() to completely remove the fields
     await prayerTimesRef.update({
       Fajr_reminderSent: admin.firestore.FieldValue.delete(),
       Zuhr_reminderSent: admin.firestore.FieldValue.delete(),
@@ -175,9 +159,8 @@ exports.resetReminderFlags = onSchedule({
       Maghrib_reminderSent: admin.firestore.FieldValue.delete(),
       Jumma_reminderSent: admin.firestore.FieldValue.delete()
     });
-    logger.log("Successfully reset all reminder flags for the next day.");
+    logger.log("Successfully reset all reminder flags.");
   } catch (error) {
-    // It's okay if the document doesn't exist or flags are already gone
     logger.log("Could not reset flags, probably because they didn't exist.", error.message);
   }
 });
