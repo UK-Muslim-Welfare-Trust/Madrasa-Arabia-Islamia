@@ -2,8 +2,8 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
 import { getMessaging, onBackgroundMessage } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-sw.js';
-// The local scheduling import is no longer needed.
-// import { fetchAndScheduleJamaatReminders } from '/assets/js/js/notifications.mjs';
+
+// The local scheduling import has been removed as it's no longer needed.
 
 // --- 1. FIREBASE INITIALIZATION & MESSAGE HANDLING ---
 const firebaseConfig = {
@@ -22,22 +22,21 @@ getMessaging(app);
 onBackgroundMessage(getMessaging(), (payload) => {
     console.log('[SW] Background message received:', payload);
 
-    // The logic to trigger local scheduling is now removed.
-    // The service worker's only job is to show the notification sent from the cloud.
+    // The old logic to trigger local scheduling has been removed.
+    // The service worker's only job is to show the notification sent from your cloud function.
     if (payload.notification) {
         console.log('[SW] Displaying visible notification.');
-        return self.registration.showNotification(
-            payload.notification.title,
-            {
-                body: payload.notification.body,
-                icon: payload.notification.icon || '/fav192.png'
-            }
-        );
+        const notificationTitle = payload.notification.title;
+        const notificationOptions = {
+            body: payload.notification.body,
+            icon: payload.notification.icon || '/fav192.png'
+        };
+        return self.registration.showNotification(notificationTitle, notificationOptions);
     }
 });
 
 
-// --- 2. CACHING AND LIFECYCLE ---
+// --- 2. CACHING AND LIFECYCLE (This section is unchanged) ---
 const CACHE_NAME = 'wcm-cache-v2';
 const urlsToCache = [
   '/', '/index.html', '/donations.html', '/login.html', '/prayerTimetable.html',
@@ -91,7 +90,7 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// --- 3. NOTIFICATION CLICK HANDLER ---
+// --- 3. NOTIFICATION CLICK HANDLER (This section is unchanged) ---
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(clients.openWindow('/'));
