@@ -59,9 +59,9 @@ exports.sendAnnouncementNotification = onDocumentCreated(
       notification: {
         title: announcement.title || "New Announcement",
         body: announcement.message,
-        icon: "/fav192.png",
+        //icon: "/fav192.png",
       },
-      topic: "announcements",
+      topic: "announcements_v2",
     };
 
     try {
@@ -124,9 +124,9 @@ exports.sendJamaatReminders = onSchedule("every 15 minutes", async () => {
         notification: {
           title: `${prayer} Jama'at Reminder`,
           body: `Jama'at for ${prayer} will begin in approximately 15 minutes.`,
-          icon: "/fav192.png",
+          //icon: "/fav192.png",
         },
-        topic: "jamaat",
+        topic: "jamaat_v2",
       };
       
       try {
@@ -162,5 +162,61 @@ exports.resetReminderFlags = onSchedule({
     logger.log("Successfully reset all reminder flags.");
   } catch (error) {
     logger.log("Could not reset flags, probably because they didn't exist.", error.message);
+  }
+});
+
+
+/**
+ * 5. Runs on the 1st of every month to find and delete inactive FCM tokens.
+ */
+exports.cleanupInactiveTokens = onSchedule("0 5 1 * *", async () => {
+  logger.log("Running monthly job to clean up inactive FCM tokens.");
+
+  const INACTIVITY_THRESHOLD_DAYS = 30;
+  const threshold = new Date();
+  threshold.setDate(threshold.getDate() - INACTIVITY_THRESHOLD_DAYS);
+
+  const inactiveTokensQuery = db.collection("fcmTokens").where("lastUsed", "<", threshold);
+  const inactiveTokensSnapshot = await inactiveTokensQuery.get();
+
+  if (inactiveTokensSnapshot.empty) {
+    logger.log("No inactive tokens found to clean up.");
+    return;
+  }
+
+  const tokensToDelete = [];
+  const promises = [];
+
+  inactiveTokensSnapshot.forEach(doc => {
+    const token = doc.id;
+    const message = { token: token };
+    const promise = messaging.send(message, true) // `true` enables dry run mode
+      .then(response => {
+        logger.log("Successfully sent dry run to:", token);
+      })
+      .catch(error => {
+        if (
+          error.code === 'messaging/registration-token-not-registered' ||
+          error.code === 'messaging/invalid-registration-token'
+        ) {
+          logger.warn("Token is invalid, marking for deletion:", token);
+          tokensToDelete.push(doc.ref);
+        } else {
+          logger.error("Error sending dry run to token:", token, error);
+        }
+      });
+    promises.push(promise);
+  });
+
+  await Promise.all(promises);
+
+  if (tokensToDelete.length > 0) {
+    logger.log(`Deleting ${tokensToDelete.length} inactive tokens.`);
+    const writeBatch = db.batch();
+    tokensToDelete.forEach(ref => writeBatch.delete(ref));
+    await writeBatch.commit();
+    logger.log("Inactive tokens deleted successfully.");
+  } else {
+    logger.log("No invalid tokens to delete.");
   }
 });
