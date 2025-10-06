@@ -46,7 +46,8 @@
 
     .wrap {
       display: grid;
-      grid-template-columns: 1fr 1.3fr; /* Adjusted aspect ratio */
+      /* Adjusted aspect ratio for better balance */
+      grid-template-columns: 1fr 1.3fr;
       gap: var(--gap);
       height: 100%;
       width: 100%;
@@ -62,8 +63,9 @@
       overflow: hidden;
     }
 
+    /* --- Left Panel Redesign --- */
     .left {
-      display: flex;
+      display: flex; /* Switched to flexbox for better scaling */
       flex-direction: column;
       text-align: center;
       gap: var(--gap);
@@ -83,7 +85,7 @@
     }
 
     .clock {
-      flex-grow: 1;
+      flex-grow: 1; /* Clock now takes up all available space */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -150,6 +152,7 @@
       padding-top: 1vmin;
     }
 
+    /* --- Right Panel Redesign --- */
     .right {
       display: grid;
       grid-template-rows: 1fr auto;
@@ -160,7 +163,7 @@
     .prayer-list {
       display: flex;
       flex-direction: column;
-      justify-content: space-around;
+      justify-content: space-around; /* Distributes items evenly */
     }
 
     .prayer-item {
@@ -270,7 +273,7 @@
       </div>
 
       <div class="clock" role="status" aria-live="polite">
-        <div id="clock-time" class="clock-time">--:--</div>
+        <div id="clock-time" class="clock-time">--:--:--</div>
         <div class="clock-sub">
           <div id="gregorian" class="gregorian">---</div>
           <div id="hijri" class="hijri">---</div>
@@ -299,7 +302,7 @@
   <div id="phone-overlay" class="phone-overlay" role="dialog" aria-hidden="true">
     <svg style="width:10vmax; max-width:120px; color: var(--primary-color);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M2 2 L22 22"></path><rect x="4" y="3" width="12" height="18" rx="2"></rect><circle cx="18.5" cy="18.5" r="3" fill="currentColor"></circle></svg>
     <div class="text">Please Silence Your Phone</div>
-    <div id="overlay-clock" class="smalltime">--:--</div>
+    <div id="overlay-clock" class="smalltime">--:--:--</div>
   </div>
 
 <script type="module">
@@ -381,7 +384,11 @@
 
   function updateClock() {
     const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    let h = now.getHours();
+    const m = pad(now.getMinutes());
+    const s = pad(now.getSeconds());
+    const h12 = h % 12 || 12;
+    const timeString = `${h12}:${m}:${s}`;
     ELS.clock.textContent = timeString;
     ELS.overlayClock.textContent = timeString;
   }
@@ -481,9 +488,9 @@
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
     
-    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
-    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) ELS.sunriseCard.classList.add('active');
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) ELS.zawwalCard.classList.add('active');
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) ELS.sunsetCard.classList.add('active');
   }
 
   function checkPhoneOverlay() {
@@ -491,14 +498,15 @@
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
     const maghribJamaat = hmToMinutes(prayerCalendar.Maghrib) + 1;
     
-    let jamaatTimes = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
+    let jamaatTimesSource = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
     if (isFriday) {
-        jamaatTimes.push(jamaatToday.Jumma, jamaatToday.Jumma2);
+        jamaatTimesSource.push(jamaatToday.Jumma, jamaatToday.Jumma2);
     } else {
-        jamaatTimes.push(jamaatToday.Zuhr);
+        jamaatTimesSource.push(jamaatToday.Zuhr);
     }
     
-    const show = jamaatTimes.map(hmToMinutes).filter(t => t !== null).some(t => nowMin >= t - 1 && nowMin <= t + 5);
+    const jamaatTimes = jamaatTimesSource.map(hmToMinutes).filter(t => t !== null);
+    const show = jamaatTimes.some(t => nowMin >= t - 1 && nowMin <= t + 5);
     ELS.phoneOverlay.classList.toggle('visible', show);
   }
 
