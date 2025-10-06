@@ -420,7 +420,7 @@
     let h = now.getHours();
     const m = pad(now.getMinutes());
     const s = pad(now.getSeconds());
-    const h12 = h % 12 || 12; // Convert 24hr to 12hr format
+    const h12 = h % 12 || 12;
     const timeString = `${h12}:${m}:${s}`;
     ELS.clock.textContent = timeString;
     ELS.overlayClock.textContent = timeString;
@@ -514,15 +514,15 @@
     let activePrayer = '';
     let isMakrooh = false;
 
-    if (nowMin >= ishaStart || nowMin < fajrStart) {
+    if (ishaStart !== null && (nowMin >= ishaStart || nowMin < fajrStart)) {
         activePrayer = 'Isha';
-    } else if (nowMin >= maghribStart && nowMin < ishaStart - 1) {
+    } else if (maghribStart !== null && ishaStart !== null && nowMin >= maghribStart && nowMin < ishaStart - 1) {
         activePrayer = 'Maghrib';
-    } else if (nowMin >= asrStart && nowMin < maghribStart - 15) {
+    } else if (asrStart !== null && maghribStart !== null && nowMin >= asrStart && nowMin < maghribStart - 15) {
         activePrayer = 'Asr';
-    } else if (nowMin >= zuhrStart && nowMin < asrStart - 1) {
+    } else if (zuhrStart !== null && asrStart !== null && nowMin >= zuhrStart && nowMin < asrStart - 1) {
         activePrayer = isFriday ? 'Jummah' : 'Zuhr';
-    } else if (nowMin >= fajrStart && nowMin < sunrise) {
+    } else if (fajrStart !== null && sunrise !== null && nowMin >= fajrStart && nowMin < sunrise) {
         activePrayer = 'Fajr';
     }
 
@@ -547,13 +547,13 @@
 
   async function toggleWakeLock(enable) {
     if (enable) {
-      try {
-        if ('wakeLock' in navigator) {
+      if ('wakeLock' in navigator && wakeLock === null) {
+        try {
           wakeLock = await navigator.wakeLock.request('screen');
-          wakeLock.addEventListener('release', () => { console.log('Screen Wake Lock was released.'); });
+          wakeLock.addEventListener('release', () => { console.log('Screen Wake Lock released.'); wakeLock = null; });
           console.log('Screen Wake Lock is active.');
-        } else { console.log('Wake Lock API not supported.'); }
-      } catch (err) { console.error(`${err.name}, ${err.message}`); }
+        } catch (err) { console.error(`Wake Lock failed: ${err.name}, ${err.message}`); }
+      }
     } else {
       if (wakeLock !== null) {
         await wakeLock.release();
@@ -563,8 +563,11 @@
   }
 
   function toggleFullscreen() {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => console.warn(e));
-    else if (document.exitFullscreen) document.exitFullscreen();
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => console.warn(e));
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
   }
   
   document.addEventListener('DOMContentLoaded', () => {
@@ -575,6 +578,12 @@
     setupListeners();
     ELS.logo.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
+    // Re-acquire lock if tab becomes visible again while in fullscreen
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && document.fullscreenElement) {
+        toggleWakeLock(true);
+      }
+    });
 
     updateClock();
     highlightActive();
