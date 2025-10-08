@@ -46,8 +46,7 @@
 
     .wrap {
       display: grid;
-      /* Adjusted aspect ratio for better balance */
-      grid-template-columns: 1fr 1.3fr;
+      grid-template-columns: 1fr 1.3fr; /* Adjusted aspect ratio */
       gap: var(--gap);
       height: 100%;
       width: 100%;
@@ -63,12 +62,12 @@
       overflow: hidden;
     }
 
-    /* --- Left Panel Redesign --- */
     .left {
-      display: flex;
-      flex-direction: column;
-      text-align: center;
-      gap: var(--gap);
+        display: grid;
+        grid-template-rows: 22% 43% 1fr 15%;
+        text-align: center;
+        gap: var(--gap);
+        padding: 1vmin;
     }
 
     .masjid-logo {
@@ -76,23 +75,22 @@
       margin: 0 auto;
       cursor: pointer;
       transition: transform .25s ease;
-      flex-shrink: 0;
+      align-self: center;
     }
     .masjid-logo:hover { transform: scale(1.02); }
     .masjid-logo img {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: contain;
       filter: invert(75%) sepia(13%) saturate(1558%) hue-rotate(359deg) brightness(91%) contrast(88%);
     }
 
     .clock {
-      flex-grow: 1; /* Clock now takes up all available space */
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       width: 100%;
-      min-height: 0;
     }
     .clock-time {
       font-family: 'Teko', sans-serif;
@@ -103,10 +101,10 @@
       text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
     }
     .clock-sub {
-      margin-top: 1vmin;
+      margin-top: 1.5vmin;
       display: flex;
       flex-direction: column;
-      gap: 0.5vmin;
+      gap: 0.8vmin;
       align-items: center;
     }
     .gregorian {
@@ -120,17 +118,19 @@
     }
 
     .message-block {
-      width: 100%;
-      min-height: 10vmin;
+      width: 90%;
+      max-width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1vmin;
       border-radius: calc(var(--radius) - 4px);
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.15);
       overflow: hidden;
       text-align: center;
-      flex-shrink: 0;
+      align-self: stretch;
+      justify-self: center;
     }
     .message-viewport {
       width: 100%;
@@ -152,11 +152,9 @@
       font-size: var(--font-size-sm);
       width: 100%;
       text-align: center;
-      padding-top: 1vmin;
-      flex-shrink: 0;
+      align-self: end;
     }
 
-    /* --- Right Panel Redesign --- */
     .right {
       display: grid;
       grid-template-rows: 1fr auto;
@@ -167,7 +165,7 @@
     .prayer-list {
       display: flex;
       flex-direction: column;
-      justify-content: space-around; /* Distributes items evenly */
+      justify-content: space-around;
     }
 
     .prayer-item {
@@ -359,13 +357,12 @@
   let wakeLock = null;
 
   const pad = n => String(n).padStart(2,'0');
-  const format12 = hm => {
+  const format12NoSuffix = hm => {
     if(!hm || !hm.includes(':')) return '--:--';
     const [h, m] = hm.split(':');
     let hh = parseInt(h, 10);
-    const suffix = hh >= 12 ? 'PM' : 'AM';
     hh = hh % 12 || 12;
-    return `${hh}:${pad(m)} ${suffix}`;
+    return `${hh}:${pad(m)}`;
   }
   const hmToMinutes = hm => hm && hm.includes(':') ? hm.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
   const minutesToHM = m => m === null || isNaN(m) ? null : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
@@ -454,23 +451,23 @@
     ELS.list.innerHTML = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha', 'Jummah'].map(name => {
       const id = `item-${name.toLowerCase()}`;
       if (name === 'Jummah') {
-        const j1 = format12(jamaatToday.Jumma), j2 = format12(jamaatToday.Jumma2);
+        const j1 = format12NoSuffix(jamaatToday.Jumma), j2 = format12NoSuffix(jamaatToday.Jumma2);
         return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div class="time-block-time">${j1}</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div class="time-block-time">${j2}</div></div></div></div>`;
       } else {
-        const start = format12(prayerCalendar[name]);
+        const start = format12NoSuffix(prayerCalendar[name]);
         let jamaat;
         if (name === 'Maghrib') {
             const maghribStartMinutes = hmToMinutes(prayerCalendar.Maghrib);
-            jamaat = format12(minutesToHM(maghribStartMinutes !== null ? maghribStartMinutes + 1 : null));
+            jamaat = format12NoSuffix(minutesToHM(maghribStartMinutes !== null ? maghribStartMinutes + 1 : null));
         } else {
-            jamaat = format12(jamaatToday[name]);
+            jamaat = format12NoSuffix(jamaatToday[name]);
         }
         return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div class="time-block-time">${start}</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div class="time-block-time">${jamaat}</div></div></div></div>`;
       }
     }).join('');
-    ELS.sunriseTime.textContent = format12(prayerCalendar.Sunrise);
-    ELS.zawwalTime.textContent = format12(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
-    ELS.sunsetTime.textContent = format12(prayerCalendar.Maghrib);
+    ELS.sunriseTime.textContent = format12NoSuffix(prayerCalendar.Sunrise);
+    ELS.zawwalTime.textContent = format12NoSuffix(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
+    ELS.sunsetTime.textContent = format12NoSuffix(prayerCalendar.Maghrib);
     highlightActive();
   }
 
@@ -496,9 +493,9 @@
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
     
-    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
-    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) ELS.sunriseCard.classList.add('active');
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) ELS.zawwalCard.classList.add('active');
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) ELS.sunsetCard.classList.add('active');
   }
 
   function checkPhoneOverlay() {
