@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Masjid Display — Prayer Times</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #1a1a1a;
+      --surface-color: #242424;
+      --primary-color: #bf9456;
+      --text-color: #e0e0e0;
+      --text-secondary-color: #a0a0a0;
+      --highlight-color: #d4af37;
+      --gap: 1.5vmin;
+      --radius: 20px;
+
+      /* BOLDER, LARGER FONTS for long-distance visibility */
+      --font-size-sm: clamp(1rem, 2.5vh, 1.5rem);
+      --font-size-md: clamp(1.2rem, 3.5vh, 2rem);
+      --font-size-lg: clamp(1.8rem, 6vh, 3.5rem);
+      --font-size-xl: clamp(2.2rem, 8vh, 4.5rem);
+      --font-size-xxl: clamp(5rem, 20vh, 16rem);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Work Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: var(--gap);
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr; /* Adjusted aspect ratio */
+      gap: var(--gap);
+      height: 100%;
+      width: 100%;
+    }
+
+    .panel {
+      background: var(--surface-color);
+      border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      padding: 2vmin;
+      overflow: hidden;
+    }
+
+    /* --- Left Panel Redesign --- */
+    .left {
+      display: grid; /* Using grid for proportional rows */
+      grid-template-rows: 22% 43% 1fr 15%;
+      text-align: center;
+      gap: var(--gap);
+      padding: 1vmin;
+    }
+
+    .masjid-logo {
+      width: clamp(200px, 30vw, 450px);
+      margin: 0 auto;
+      cursor: pointer;
+      transition: transform .25s ease;
+      align-self: center;
+    }
+    .masjid-logo:hover { transform: scale(1.02); }
+    .masjid-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: invert(75%) sepia(13%) saturate(1558%) hue-rotate(359deg) brightness(91%) contrast(88%);
+    }
+
+    .clock {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+    .clock-time {
+      font-family: 'Teko', sans-serif;
+      font-weight: 600;
+      font-size: var(--font-size-xxl);
+      line-height: 0.9;
+      color: var(--text-color);
+      text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+    }
+    .clock-sub {
+      margin-top: 1.5vmin;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8vmin;
+      align-items: center;
+    }
+    .gregorian {
+      font-size: var(--font-size-md);
+      color: var(--text-color);
+    }
+    .hijri {
+      font-size: var(--font-size-sm);
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    .message-block {
+      width: 90%;
+      max-width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1vmin;
+      border-radius: calc(var(--radius) - 4px);
+      background: rgba(0,0,0,0.15);
+      overflow: hidden;
+      text-align: center;
+      align-self: stretch;
+      justify-self: center;
+    }
+    .message-viewport {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .message-content {
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+      line-height: 1.4;
+      padding: 4px 6px;
+      font-style: italic;
+    }
+    .message-scroller { display: block; }
+
+    footer.left-foot {
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+      width: 100%;
+      text-align: center;
+      align-self: end;
+    }
+
+    /* --- Right Panel Redesign --- */
+    .right {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 1.5vmin;
+      padding: 2vmin;
+    }
+
+    .prayer-list {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+    }
+
+    .prayer-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1vmin 2.5vmin;
+      border-radius: 1vmin;
+      border-left: 6px solid transparent;
+      transition: all 0.3s ease-in-out;
+    }
+    .prayer-name {
+      font-family: 'Teko', sans-serif;
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      flex-basis: 40%;
+    }
+    .prayer-times {
+      display: flex;
+      justify-content: space-around;
+      flex-basis: 60%;
+      text-align: center;
+    }
+    .time-block-label {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary-color);
+    }
+    .time-block-time {
+      font-family: 'Teko', sans-serif;
+      font-size: var(--font-size-xl);
+      line-height: 1.1;
+      font-weight: 600;
+    }
+    .time-block.start-time .time-block-time {
+      font-size: var(--font-size-lg);
+      color: var(--text-secondary-color);
+      font-weight: 500;
+    }
+    .prayer-item.active {
+      background: linear-gradient(90deg, rgba(191,148,86,0.15), transparent);
+      border-left-color: var(--highlight-color);
+    }
+    .prayer-item.active .prayer-name,
+    .prayer-item.active .jamaat-time .time-block-time {
+      color: var(--primary-color);
+    }
+    
+    .info-row {
+      display: flex;
+      gap: 1.5vmin;
+      justify-content: center;
+      align-items: center;
+    }
+    .info-mini {
+      background: rgba(0,0,0,0.2);
+      border-radius: var(--radius);
+      padding: 1.2vmin 1.5vmin;
+      flex-grow: 1;
+      text-align: center;
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+      border: 1px solid transparent;
+      transition: all 0.3s ease;
+    }
+    .info-mini .time-label { 
+        font-weight: 600; 
+        font-size: clamp(1rem, 2.5vh, 1.5rem); 
+    }
+    .info-mini .time {
+      font-family: 'Teko', sans-serif;
+      font-weight: 600;
+      color: var(--primary-color);
+      font-size: var(--font-size-md);
+      margin-top: 0.5vmin;
+    }
+    .info-mini.active {
+      color: var(--primary-color);
+      border-color: rgba(212, 175, 55, 0.2);
+      animation: breathe-info 3.6s ease-in-out infinite;
+    }
+    @keyframes breathe-info {
+      0% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.05); }
+      50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.12); }
+      100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.05); }
+    }
+    
+    .phone-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex;
+      align-items: center; justify-content: center; flex-direction: column;
+      z-index: 10000; gap: 18px; color: #fff; text-align: center;
+      visibility: hidden; opacity: 0; transition: opacity .35s ease, visibility .35s;
+    }
+    .phone-overlay.visible { visibility: visible; opacity: 1; }
+    .phone-overlay .text { font-family: 'Teko', sans-serif; font-size: clamp(1.2rem, 5vmin, 3rem); }
+    .phone-overlay .smalltime { font-size: clamp(1rem, 3vmin, 2rem); color: var(--text-secondary-color); }
+
+    @media (orientation: portrait) {
+      .wrap { grid-template-columns: 1fr; grid-auto-rows: auto 1fr; }
+      .left {
+        display: block;
+      }
+      .clock { margin: 4vh 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <section class="panel left" aria-label="Clock and Info Panel">
+      <div class="masjid-logo" id="logo-toggle" title="Click to toggle fullscreen">
+        <img src="https://www.wakefieldcentralmosque.co.uk/assets/img/img/logo-mosque.svg" alt="Masjid logo">
+      </div>
+
+      <div class="clock" role="status" aria-live="polite">
+        <div id="clock-time" class="clock-time">--:--:--</div>
+        <div class="clock-sub">
+          <div id="gregorian" class="gregorian">---</div>
+          <div id="hijri" class="hijri">---</div>
+        </div>
+      </div>
+
+      <div class="message-block" role="region" aria-live="polite">
+        <div id="message-viewport" class="message-viewport">
+          <div id="message-content" class="message-content">Loading message...</div>
+        </div>
+      </div>
+
+      <footer class="left-foot">Please donate generously to support your Masjid.</footer>
+    </section>
+
+    <section class="panel right" aria-label="Prayer Timetable">
+      <div id="prayer-list" class="prayer-list" role="list"></div>
+      <div class="info-row">
+        <div id="sunrise-card" class="info-mini"><div class="time-label">Sunrise</div><div id="sunrise-time" class="time">--:--</div></div>
+        <div id="zawwal-card" class="info-mini"><div class="time-label">Zawwal</div><div id="zawwal-time" class="time">--:--</div></div>
+        <div id="sunset-card" class="info-mini"><div class="time-label">Sunset</div><div id="sunset-time" class="time">--:--</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="phone-overlay" class="phone-overlay" role="dialog" aria-hidden="true">
+    <svg style="width:10vmax; max-width:120px; color: var(--primary-color);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M2 2 L22 22"></path><rect x="4" y="3" width="12" height="18" rx="2"></rect><circle cx="18.5" cy="18.5" r="3" fill="currentColor"></circle></svg>
+    <div class="text">Please Silence Your Phone</div>
+    <div id="overlay-clock" class="smalltime">--:--:--</div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuq7jYQcKDKY3UWNxQwP51fKRwjCERuvo",
+    authDomain: "wakefield-central-mosque.firebaseapp.com",
+    projectId: "wakefield-central-mosque",
+    storageBucket: "wakefield-central-mosque.appspot.com",
+    messagingSenderId: "998395111777",
+    appId: "1:998395111777:web:5492302e7279822d5cbd20",
+    measurementId: "G-NXER4ENDE0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const ELS = {
+    clock: document.getElementById('clock-time'),
+    gregorian: document.getElementById('gregorian'),
+    hijri: document.getElementById('hijri'),
+    messageViewport: document.getElementById('message-viewport'),
+    messageContent: document.getElementById('message-content'),
+    list: document.getElementById('prayer-list'),
+    sunriseTime: document.getElementById('sunrise-time'),
+    zawwalTime: document.getElementById('zawwal-time'),
+    sunsetTime: document.getElementById('sunset-time'),
+    sunriseCard: document.getElementById('sunrise-card'),
+    zawwalCard: document.getElementById('zawwal-card'),
+    sunsetCard: document.getElementById('sunset-card'),
+    logo: document.getElementById('logo-toggle'),
+    phoneOverlay: document.getElementById('phone-overlay'),
+    overlayClock: document.getElementById('overlay-clock'),
+  };
+
+  const HADITHS = [
+    "The best of you are those who learn the Qur'an and teach it.",
+    "The most beloved deed to Allah is that which is most consistent, even if it is little.",
+    "Whoever builds a mosque for Allah, Allah will build for him a house in Paradise.",
+    "Charity extinguishes sin as water extinguishes fire.",
+    "He who is not grateful to people is not grateful to Allah."
+  ];
+
+  let prayerCalendar = {}, jamaatToday = {}, messageText = '';
+  let wakeLock = null;
+
+  const pad = n => String(n).padStart(2,'0');
+  const format12 = hm => {
+    if(!hm || !hm.includes(':')) return '--:--';
+    const [h, m] = hm.split(':');
+    let hh = parseInt(h, 10);
+    const suffix = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12 || 12;
+    return `${hh}:${pad(m)} ${suffix}`;
+  }
+  const hmToMinutes = hm => hm && hm.includes(':') ? hm.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
+  const minutesToHM = m => m === null || isNaN(m) ? null : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+  
+  function saveCache() {
+      try {
+          localStorage.setItem('masjid_prayerCalendar', JSON.stringify(prayerCalendar));
+          localStorage.setItem('masjid_jamaatToday', JSON.stringify(jamaatToday));
+          localStorage.setItem('masjid_messageText', messageText);
+      } catch (e) { console.warn('Failed to save cache', e); }
+  }
+
+  function loadCache() {
+      try {
+          const calendar = localStorage.getItem('masjid_prayerCalendar');
+          const jamaat = localStorage.getItem('masjid_jamaatToday');
+          const message = localStorage.getItem('masjid_messageText');
+          if(calendar) prayerCalendar = JSON.parse(calendar);
+          if(jamaat) jamaatToday = JSON.parse(jamaat);
+          if(message) messageText = message;
+          return true;
+      } catch (e) { return false; }
+  }
+
+  function updateClock() {
+    const now = new Date();
+    let h = now.getHours();
+    const m = pad(now.getMinutes());
+    const s = pad(now.getSeconds());
+    const h12 = h % 12 || 12;
+    const timeString = `${h12}:${m}:${s}`;
+    ELS.clock.textContent = timeString;
+    ELS.overlayClock.textContent = timeString;
+  }
+
+  async function fetchHijriDate() {
+    try {
+      const now = new Date(), d=pad(now.getDate()), m=pad(now.getMonth()+1), y=now.getFullYear();
+      const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json?.data?.hijri) ELS.hijri.textContent = `${json.data.hijri.day} ${json.data.hijri.month.en} ${json.data.hijri.year}H`;
+    } catch (e) { console.warn('Hijri fetch failed', e); }
+  }
+
+  function setupListeners() {
+    const path = `artifacts/masjid-connect-app/public/data`;
+    const d = new Date(), day = pad(d.getDate()), month = pad(d.getMonth() + 1);
+    
+    onSnapshot(doc(db, `${path}/prayerTimes/today`), s => { if(s.exists()) { jamaatToday = s.data(); saveCache(); renderPrayerList(); } });
+    onSnapshot(doc(db, `${path}/prayerCalendar/${day}-${month}`), s => { if(s.exists()) { prayerCalendar = s.data(); saveCache(); renderPrayerList(); } });
+    onSnapshot(doc(db, `${path}/message/message`), s => {
+      messageText = (s.exists() && s.data().text && String(s.data().text).trim()) ? String(s.data().text).trim() : '';
+      saveCache();
+      renderMessage();
+    });
+  }
+  
+  function renderMessage() {
+    const txt = messageText || HADITHS[Math.floor(Math.random() * HADITHS.length)];
+    const { messageViewport, messageContent } = ELS;
+    if (!messageViewport || !messageContent) return;
+    const oldScroller = messageViewport.querySelector('.message-scroller');
+    if (oldScroller) { messageViewport.innerHTML = ''; messageViewport.appendChild(messageContent); }
+    messageContent.style.animation = '';
+    messageContent.textContent = txt;
+    requestAnimationFrame(() => {
+        const vpH = messageViewport.clientHeight, contentH = messageContent.scrollHeight;
+        if (contentH > vpH) {
+            const scroller = document.createElement('div'); scroller.className = 'message-scroller';
+            const copy1 = messageContent.cloneNode(true), copy2 = messageContent.cloneNode(true);
+            copy1.style.marginBottom = '1.5em'; scroller.append(copy1, copy2);
+            messageViewport.innerHTML = ''; messageViewport.appendChild(scroller);
+            const duration = (contentH / vpH) * 18;
+            const styleId = 'marquee-style'; document.getElementById(styleId)?.remove();
+            const styleEl = document.createElement('style'); styleEl.id = styleId;
+            styleEl.innerHTML = `@keyframes marqueeY { 0% { transform: translateY(0); } 100% { transform: translateY(-${contentH + 24}px); } }`;
+            document.head.appendChild(styleEl);
+            scroller.style.animation = `marqueeY ${duration}s linear infinite`;
+        }
+    });
+  }
+
+  function renderPrayerList() {
+    if (!ELS.list || Object.keys(prayerCalendar).length === 0) return;
+    ELS.list.innerHTML = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha', 'Jummah'].map(name => {
+      const id = `item-${name.toLowerCase()}`;
+      if (name === 'Jummah') {
+        const j1 = format12(jamaatToday.Jumma), j2 = format12(jamaatToday.Jumma2);
+        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div class="time-block-time">${j1}</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div class="time-block-time">${j2}</div></div></div></div>`;
+      } else {
+        const start = format12(prayerCalendar[name]);
+        let jamaat;
+        if (name === 'Maghrib') {
+            const maghribStartMinutes = hmToMinutes(prayerCalendar.Maghrib);
+            jamaat = format12(minutesToHM(maghribStartMinutes !== null ? maghribStartMinutes + 1 : null));
+        } else {
+            jamaat = format12(jamaatToday[name]);
+        }
+        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div class="time-block-time">${start}</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div class="time-block-time">${jamaat}</div></div></div></div>`;
+      }
+    }).join('');
+    ELS.sunriseTime.textContent = format12(prayerCalendar.Sunrise);
+    ELS.zawwalTime.textContent = format12(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
+    ELS.sunsetTime.textContent = format12(prayerCalendar.Maghrib);
+    highlightActive();
+  }
+
+  function highlightActive() {
+    document.querySelectorAll('.prayer-item.active, .info-mini.active').forEach(el => el.classList.remove('active'));
+    if (Object.keys(prayerCalendar).length === 0) return;
+    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    
+    const fajrStart = hmToMinutes(prayerCalendar.Fajr);
+    const sunrise = hmToMinutes(prayerCalendar.Sunrise);
+    const zuhrStart = hmToMinutes(prayerCalendar.Zuhr);
+    const asrStart = hmToMinutes(prayerCalendar.Asr);
+    const maghribStart = hmToMinutes(prayerCalendar.Maghrib);
+    const ishaStart = hmToMinutes(prayerCalendar.Isha);
+
+    let activePrayer = '';
+    
+    if (ishaStart !== null && (nowMin >= ishaStart || nowMin < fajrStart)) { activePrayer = 'Isha';
+    } else if (maghribStart !== null && ishaStart !== null && nowMin >= maghribStart && nowMin < ishaStart - 1) { activePrayer = 'Maghrib';
+    } else if (asrStart !== null && maghribStart !== null && nowMin >= asrStart && nowMin < maghribStart - 15) { activePrayer = 'Asr';
+    } else if (zuhrStart !== null && asrStart !== null && nowMin >= zuhrStart && nowMin < asrStart - 1) { activePrayer = isFriday ? 'Jummah' : 'Zuhr';
+    } else if (fajrStart !== null && sunrise !== null && nowMin >= fajrStart && nowMin < sunrise) { activePrayer = 'Fajr'; }
+
+    if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
+    
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
+  }
+
+  function checkPhoneOverlay() {
+    if (Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
+    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    const maghribJamaat = hmToMinutes(prayerCalendar.Maghrib) + 1;
+    
+    let jamaatTimesSource = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
+    if (isFriday) {
+        jamaatTimesSource.push(jamaatToday.Jumma, jamaatToday.Jumma2);
+    } else {
+        jamaatTimesSource.push(jamaatToday.Zuhr);
+    }
+    
+    const jamaatTimes = jamaatTimesSource.map(hmToMinutes).filter(t => t !== null);
+    const show = jamaatTimes.some(t => nowMin >= t - 1 && nowMin <= t + 5);
+    ELS.phoneOverlay.classList.toggle('visible', show);
+  }
+
+  async function toggleWakeLock(shouldBeActive) {
+    if (shouldBeActive) {
+      if ('wakeLock' in navigator && wakeLock === null) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+          console.log('Screen Wake Lock is active.');
+        } catch (err) { console.error(`Wake Lock failed: ${err.name}, ${err.message}`); }
+      }
+    } else {
+      if (wakeLock !== null) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    }
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => console.warn(e));
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    ELS.gregorian.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    
+    if(loadCache()) { renderPrayerList(); renderMessage(); }
+    fetchHijriDate();
+    setupListeners();
+    ELS.logo.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && document.fullscreenElement) {
+        toggleWakeLock(true);
+      }
+    });
+
+    updateClock();
+    highlightActive();
+    
+    setInterval(() => {
+      updateClock();
+      highlightActive();
+      checkPhoneOverlay();
+    }, 1000);
+    setInterval(fetchHijriDate, 1000 * 60 * 60);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(renderMessage, 250);
+    });
+  });
+</script>
+</body>
+</html>
+
+
