@@ -15,15 +15,8 @@
       --text-color: #e0e0e0;
       --text-secondary-color: #a0a0a0;
       --highlight-color: #d4af37;
-      --gap: 1.5vmin;
+      --gap: 1.2vmin;
       --radius: 20px;
-
-      /* BOLDER, LARGER FONTS for long-distance visibility */
-      --font-size-sm: clamp(1rem, 2.5vh, 1.5rem);
-      --font-size-md: clamp(1.2rem, 3.5vh, 2rem);
-      --font-size-lg: clamp(1.8rem, 6vh, 3.5rem);
-      --font-size-xl: clamp(2.2rem, 8vh, 4.5rem);
-      --font-size-xxl: clamp(5rem, 20vh, 16rem);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,7 +39,6 @@
 
     .wrap {
       display: grid;
-      /* Adjusted aspect ratio for better balance */
       grid-template-columns: 1fr 1.3fr;
       gap: var(--gap);
       height: 100%;
@@ -59,33 +51,41 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.55);
       display: flex;
       flex-direction: column;
-      padding: 2vmin;
+      padding: 1.5vmin;
       overflow: hidden;
     }
 
-    /* --- Left Panel Redesign --- */
     .left {
-      display: flex; /* Switched to flexbox for better scaling */
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: 20% 45% 1fr 15%;
+      align-items: center;
+      justify-items: center;
       text-align: center;
-      gap: var(--gap);
+      min-width: 240px;
+      padding: 2vmin;
     }
 
     .masjid-logo {
-      width: clamp(200px, 30vw, 450px);
-      margin: 0 auto;
+      width: clamp(200px, 25vw, 480px);
+      height: 100%;
       cursor: pointer;
-      transition: transform .25s ease;
+      transition: transform .25s ease, filter .25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .masjid-logo:hover { transform: scale(1.02); }
+    .masjid-logo:hover {
+      transform: scale(1.02);
+      filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.28));
+    }
     .masjid-logo img {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: contain;
       filter: invert(75%) sepia(13%) saturate(1558%) hue-rotate(359deg) brightness(91%) contrast(88%);
     }
 
     .clock {
-      flex-grow: 1; /* Clock now takes up all available space */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -95,50 +95,55 @@
     .clock-time {
       font-family: 'Teko', sans-serif;
       font-weight: 600;
-      font-size: var(--font-size-xxl);
+      font-size: clamp(4rem, 16vh, 15rem);
       line-height: 0.9;
       color: var(--text-color);
-      text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+      text-shadow: 0 0 26px rgba(212, 175, 55, 0.22);
     }
     .clock-sub {
-      margin-top: 1vmin;
+      margin-top: 1.5vmin;
       display: flex;
       flex-direction: column;
-      gap: 0.5vmin;
+      gap: 0.8vmin;
       align-items: center;
     }
     .gregorian {
-      font-size: var(--font-size-md);
+      font-size: clamp(1.1rem, 3vh, 2.5rem);
       color: var(--text-color);
     }
     .hijri {
-      font-size: var(--font-size-sm);
+      font-size: clamp(1rem, 2.5vh, 2.2rem);
       color: var(--primary-color);
       font-weight: 600;
     }
 
     .message-block {
-      width: 100%;
-      min-height: 10vmin;
+      width: 90%;
+      max-width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1vmin;
       border-radius: calc(var(--radius) - 4px);
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.15);
       overflow: hidden;
       text-align: center;
+      align-self: stretch;
     }
     .message-viewport {
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
       overflow: hidden;
     }
     .message-content {
       color: var(--text-secondary-color);
-      font-size: var(--font-size-sm);
-      line-height: 1.4;
+      font-size: clamp(1rem, 2vh, 1.5rem);
+      line-height: 1.35;
       padding: 4px 6px;
       font-style: italic;
     }
@@ -146,24 +151,24 @@
 
     footer.left-foot {
       color: var(--text-secondary-color);
-      font-size: var(--font-size-sm);
+      font-size: clamp(0.9rem, 1.8vh, 1.2rem);
       width: 100%;
       text-align: center;
-      padding-top: 1vmin;
+      align-self: end;
     }
 
-    /* --- Right Panel Redesign --- */
     .right {
       display: grid;
       grid-template-rows: 1fr auto;
       gap: 1.5vmin;
-      padding: 2vmin;
+      padding: 2.5vmin;
     }
 
     .prayer-list {
+      flex-grow: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-around; /* Distributes items evenly */
+      justify-content: space-around;
     }
 
     .prayer-item {
@@ -177,7 +182,7 @@
     }
     .prayer-name {
       font-family: 'Teko', sans-serif;
-      font-size: var(--font-size-lg);
+      font-size: clamp(1.8rem, 6vh, 3.5rem);
       font-weight: 600;
       flex-basis: 40%;
     }
@@ -188,17 +193,17 @@
       text-align: center;
     }
     .time-block-label {
-      font-size: var(--font-size-sm);
+      font-size: clamp(1rem, 2.5vh, 1.5rem);
       color: var(--text-secondary-color);
     }
     .time-block-time {
       font-family: 'Teko', sans-serif;
-      font-size: var(--font-size-xl);
+      font-size: clamp(2.2rem, 8vh, 4.5rem);
       line-height: 1.1;
       font-weight: 600;
     }
     .time-block.start-time .time-block-time {
-      font-size: var(--font-size-lg);
+      font-size: clamp(1.8rem, 6vh, 3.5rem);
       color: var(--text-secondary-color);
       font-weight: 500;
     }
@@ -228,11 +233,12 @@
       border: 1px solid transparent;
       transition: all 0.3s ease;
     }
+    .info-mini .time-label { font-weight: 600; font-size: clamp(1rem, 2.5vh, 1.5rem); }
     .info-mini .time {
       font-family: 'Teko', sans-serif;
       font-weight: 600;
       color: var(--primary-color);
-      font-size: var(--font-size-md);
+      font-size: clamp(1.2rem, 3.5vh, 2rem);
       margin-top: 0.5vmin;
     }
     .info-mini.active {
@@ -259,7 +265,7 @@
     @media (orientation: portrait) {
       .wrap { grid-template-columns: 1fr; grid-auto-rows: auto 1fr; }
       .left {
-        display: block; /* Revert to block for portrait to allow natural flow */
+        display: block;
       }
       .clock { margin: 4vh 0; }
     }
@@ -292,9 +298,9 @@
     <section class="panel right" aria-label="Prayer Timetable">
       <div id="prayer-list" class="prayer-list" role="list"></div>
       <div class="info-row">
-        <div id="sunrise-card" class="info-mini"><div>Sunrise</div><div id="sunrise-time" class="time">--:--</div></div>
-        <div id="zawwal-card" class="info-mini"><div>Zawwal</div><div id="zawwal-time" class="time">--:--</div></div>
-        <div id="sunset-card" class="info-mini"><div>Sunset</div><div id="sunset-time" class="time">--:--</div></div>
+        <div id="sunrise-card" class="info-mini"><div class="time-label">Sunrise</div><div id="sunrise-time" class="time">--:--</div></div>
+        <div id="zawwal-card" class="info-mini"><div class="time-label">Zawwal</div><div id="zawwal-time" class="time">--:--</div></div>
+        <div id="sunset-card" class="info-mini"><div class="time-label">Sunset</div><div id="sunset-time" class="time">--:--</div></div>
       </div>
     </section>
   </div>
@@ -488,9 +494,9 @@
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
     
-    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) ELS.sunriseCard.classList.add('active');
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) ELS.zawwalCard.classList.add('active');
-    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) ELS.sunsetCard.classList.add('active');
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
   }
 
   function checkPhoneOverlay() {
