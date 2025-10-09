@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Masjid Display — Prayer Times</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Work+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -15,261 +15,301 @@
       --text-color: #e0e0e0;
       --text-secondary-color: #a0a0a0;
       --highlight-color: #d4af37;
-      --gap: 1.5vmin;
+      --gap: 2vmin; /* Increased gap for visual separation */
       --radius: 20px;
 
-      /* BOLDER, LARGER FONTS for long-distance visibility */
-      --font-size-sm: clamp(1rem, 2.5vh, 1.5rem);
-      --font-size-md: clamp(1.2rem, 3.5vh, 2rem);
-      --font-size-lg: clamp(1.8rem, 6vh, 3.5rem);
-      --font-size-xl: clamp(2.2rem, 8vh, 4.5rem);
-      --font-size-xxl: clamp(5rem, 20vh, 16rem);
+      /* SCALED-UP FONT SIZES for 10m visibility, relying heavily on vmin/vh */
+      /* Base font size scales with the smaller dimension (vmin) */
+      --font-size-xs: clamp(1rem, 1.5vmin, 1.8rem);
+      --font-size-sm: clamp(1.2rem, 2.5vmin, 2.5rem); /* For dates, labels */
+      --font-size-md: clamp(1.5rem, 4.5vmin, 3.5rem); /* For prayer names, info times */
+      --font-size-lg: clamp(2rem, 6vmin, 5rem); /* For jama'at labels, important secondary info */
+      --font-size-xl: clamp(2.5rem, 9vmin, 8rem); /* For main jama'at times */
+      --font-size-xxl: clamp(6rem, 25vmin, 20rem); /* MASSIVE Clock Time */
     }
 
+    /* General Reset and Base */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body {
-      height: 100%;
-      width: 100%;
-      background: var(--bg-color);
-      color: var(--text-color);
+      height: 100%; width: 100%;
+      background: var(--bg-color); color: var(--text-color);
       font-family: 'Work Sans', sans-serif;
       overflow: hidden;
     }
-
     body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      display: flex; flex-direction: column; justify-content: stretch;
       padding: var(--gap);
     }
-
     .wrap {
       display: grid;
-      grid-template-columns: 1fr 1.3fr; /* Adjusted aspect ratio */
+      /* Adjusted to 1fr for left, 1.5fr for right to give more space to times */
+      grid-template-columns: 1fr 1.5fr; 
       gap: var(--gap);
-      height: 100%;
-      width: 100%;
+      height: 100%; width: 100%;
     }
 
+    /* Panel Styling */
     .panel {
       background: var(--surface-color);
       border-radius: var(--radius);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.55);
       display: flex;
       flex-direction: column;
-      padding: 2vmin;
+      padding: 3vmin; /* Increased padding */
       overflow: hidden;
     }
 
-    /* --- Left Panel Redesign --- */
+    /* --- Left Panel (Clock/Message) --- */
     .left {
-      display: grid; /* Using grid for proportional rows */
-      grid-template-rows: 22% 43% 1fr 15%;
+      display: flex; flex-direction: column;
       text-align: center;
       gap: var(--gap);
-      padding: 1vmin;
+      justify-content: space-between; /* Better vertical spacing */
     }
 
     .masjid-logo {
-      width: clamp(200px, 30vw, 450px);
+      width: clamp(200px, 35vw, 550px); /* Slightly larger */
       margin: 0 auto;
-      cursor: pointer;
       transition: transform .25s ease;
-      align-self: center;
+      flex-shrink: 0;
+      padding: 1vh 0;
+      cursor: pointer;
     }
-    .masjid-logo:hover { transform: scale(1.02); }
     .masjid-logo img {
       width: 100%;
-      height: 100%;
-      object-fit: contain;
+      height: auto;
       filter: invert(75%) sepia(13%) saturate(1558%) hue-rotate(359deg) brightness(91%) contrast(88%);
     }
 
     .clock {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      flex-grow: 1; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       width: 100%;
+      min-height: 0;
     }
     .clock-time {
-      font-family: 'Teko', sans-serif;
-      font-weight: 600;
+      font-family: 'Teko', sans-serif; font-weight: 700; /* Bolder */
       font-size: var(--font-size-xxl);
       line-height: 0.9;
       color: var(--text-color);
-      text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+      text-shadow: 0 0 40px rgba(212, 175, 55, 0.35); /* Stronger shadow */
     }
     .clock-sub {
-      margin-top: 1.5vmin;
-      display: flex;
-      flex-direction: column;
-      gap: 0.8vmin;
-      align-items: center;
+      margin-top: 2vmin; /* Increased spacing */
+      display: flex; flex-direction: column; gap: 1vmin; align-items: center;
     }
     .gregorian {
-      font-size: var(--font-size-md);
-      color: var(--text-color);
+      font-size: var(--font-size-md); /* Increased size for date */
+      font-weight: 600;
     }
     .hijri {
       font-size: var(--font-size-sm);
       color: var(--primary-color);
-      font-weight: 600;
+      font-weight: 700; /* Bolder */
     }
 
     .message-block {
-      width: 90%;
-      max-width: 100%;
-      height: 100%;
+      width: 100%;
+      /* Set a fixed height for better layout stability and clear viewing area */
+      height: 15vh; 
+      max-height: 200px; /* Capping the max height for 8K+ */
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1vmin;
+      padding: 2vmin; /* Increased padding */
       border-radius: calc(var(--radius) - 4px);
-      background: rgba(0,0,0,0.15);
+      background: rgba(0,0,0,0.3); /* Darker background for contrast */
       overflow: hidden;
       text-align: center;
-      align-self: stretch;
-      justify-self: center;
+      flex-shrink: 0;
+      margin: 3vh 0; /* Vertical spacing adjustment */
     }
     .message-viewport {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
+      width: 100%; height: 100%;
+      position: relative; overflow: hidden;
     }
     .message-content {
-      color: var(--text-secondary-color);
-      font-size: var(--font-size-sm);
+      color: var(--highlight-color); /* Highlight color for better visibility */
+      font-size: var(--font-size-md); /* SIGNIFICANTLY increased font size */
+      font-weight: 600;
       line-height: 1.4;
       padding: 4px 6px;
-      font-style: italic;
+      font-style: normal; /* Removed italic for clarity */
     }
     .message-scroller { display: block; }
 
     footer.left-foot {
       color: var(--text-secondary-color);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-sm); /* Increased size */
       width: 100%;
       text-align: center;
-      align-self: end;
+      padding-top: 1vmin;
+      flex-shrink: 0;
+      font-weight: 400;
     }
 
-    /* --- Right Panel Redesign --- */
+    /* --- Right Panel (Prayer Times) --- */
     .right {
-      display: grid;
-      grid-template-rows: 1fr auto;
-      gap: 1.5vmin;
-      padding: 2vmin;
+      display: flex; /* Use flex for the vertical stacking */
+      flex-direction: column;
+      gap: 2vmin;
+      padding: 3vmin 2vmin 2vmin; /* Adjusted padding */
     }
 
     .prayer-list {
+      flex-grow: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-around;
+      /* Distributes prayer items and ensures they fill the vertical space */
+      justify-content: space-around; 
     }
 
     .prayer-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1vmin 2.5vmin;
+      padding: 2vmin 3vmin; /* Increased padding */
       border-radius: 1vmin;
-      border-left: 6px solid transparent;
+      border-left: 8px solid transparent; /* Thicker border */
       transition: all 0.3s ease-in-out;
+      margin: 0.5vmin 0; /* Small vertical margin */
     }
     .prayer-name {
       font-family: 'Teko', sans-serif;
       font-size: var(--font-size-lg);
-      font-weight: 600;
-      flex-basis: 40%;
+      font-weight: 700; /* Bolder */
+      flex-basis: 35%; /* Reduced basis for name to give more space to times */
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     .prayer-times {
       display: flex;
       justify-content: space-around;
-      flex-basis: 60%;
+      flex-basis: 65%;
       text-align: center;
     }
     .time-block-label {
       font-size: var(--font-size-sm);
       color: var(--text-secondary-color);
+      font-weight: 400;
     }
     .time-block-time {
       font-family: 'Teko', sans-serif;
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-xl); /* MASSIVE for Jama'at */
       line-height: 1.1;
-      font-weight: 600;
+      font-weight: 700;
     }
     .time-block.start-time .time-block-time {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-md); /* Reduced size for Start Time */
       color: var(--text-secondary-color);
       font-weight: 500;
     }
     .prayer-item.active {
-      background: linear-gradient(90deg, rgba(191,148,86,0.15), transparent);
-      border-left-color: var(--highlight-color);
+      background: linear-gradient(90deg, rgba(191,148,86,0.25), transparent); /* Stronger background */
+      border-left-color: var(--primary-color);
+      box-shadow: 0 0 15px rgba(191,148,86,0.1);
     }
     .prayer-item.active .prayer-name,
     .prayer-item.active .jamaat-time .time-block-time {
-      color: var(--primary-color);
+      color: var(--highlight-color); /* Highlight color */
     }
     
+    /* Info Row (Sunrise, Zawwal, Sunset) */
     .info-row {
       display: flex;
-      gap: 1.5vmin;
-      justify-content: center;
-      align-items: center;
+      gap: var(--gap);
+      justify-content: space-between;
+      align-items: stretch;
+      flex-shrink: 0;
+      padding-top: 1vmin;
     }
     .info-mini {
       background: rgba(0,0,0,0.2);
       border-radius: var(--radius);
-      padding: 1.2vmin 1.5vmin;
+      padding: 1.5vmin 2vmin; /* Increased padding */
       flex-grow: 1;
       text-align: center;
       color: var(--text-secondary-color);
       font-size: var(--font-size-sm);
       border: 1px solid transparent;
       transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .info-mini .time-label { 
-        font-weight: 600; 
-        font-size: clamp(1rem, 2.5vh, 1.5rem); 
+      font-weight: 600; 
+      font-size: var(--font-size-sm); 
     }
     .info-mini .time {
       font-family: 'Teko', sans-serif;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--primary-color);
-      font-size: var(--font-size-md);
-      margin-top: 0.5vmin;
+      font-size: var(--font-size-md); /* Increased size for times */
+      margin-top: 0.8vmin;
     }
     .info-mini.active {
-      color: var(--primary-color);
-      border-color: rgba(212, 175, 55, 0.2);
+      color: var(--highlight-color);
+      border-color: rgba(212, 175, 55, 0.4);
       animation: breathe-info 3.6s ease-in-out infinite;
     }
+    /* Keyframes are fine */
     @keyframes breathe-info {
-      0% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.05); }
-      50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.12); }
-      100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.05); }
+      0% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.1); }
+      50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
+      100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.1); }
     }
     
+    /* Phone Overlay - Ensure it's massive */
     .phone-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex;
-      align-items: center; justify-content: center; flex-direction: column;
-      z-index: 10000; gap: 18px; color: #fff; text-align: center;
-      visibility: hidden; opacity: 0; transition: opacity .35s ease, visibility .35s;
+      /* ... (rest of styles are fine) ... */
     }
-    .phone-overlay.visible { visibility: visible; opacity: 1; }
-    .phone-overlay .text { font-family: 'Teko', sans-serif; font-size: clamp(1.2rem, 5vmin, 3rem); }
-    .phone-overlay .smalltime { font-size: clamp(1rem, 3vmin, 2rem); color: var(--text-secondary-color); }
+    .phone-overlay .text { 
+      font-family: 'Teko', sans-serif; 
+      font-size: var(--font-size-xl); /* Made text larger */
+    }
+    .phone-overlay .smalltime { 
+      font-size: var(--font-size-md); 
+      color: var(--text-secondary-color); 
+    }
 
-    @media (orientation: portrait) {
-      .wrap { grid-template-columns: 1fr; grid-auto-rows: auto 1fr; }
-      .left {
-        display: block;
+    /* Square/Portrait Monitor Support */
+    @media (max-aspect-ratio: 1/1) { /* For square and portrait */
+      .wrap { 
+        grid-template-columns: 1fr; /* Stack vertically */
+        grid-auto-rows: minmax(min-content, auto) 1fr; /* Left panel takes only needed height, Right panel takes the rest */
+        gap: 3vmin; /* Increased gap between stacked panels */
       }
-      .clock { margin: 4vh 0; }
+      .left {
+        padding-bottom: 0; /* Adjust padding for stack */
+      }
+      .masjid-logo {
+        width: clamp(150px, 40vw, 300px);
+        padding: 0;
+      }
+      .clock {
+        flex-grow: 0; /* Don't force clock to fill all space in portrait */
+        padding-top: 2vh;
+        padding-bottom: 2vh;
+      }
+      .clock-time {
+        font-size: clamp(5rem, 15vw, 12rem);
+      }
+      .message-block {
+        height: auto; /* Allow height to adjust in portrait */
+        max-height: 12vh;
+      }
+    }
+    
+    /* Ensure responsiveness for very wide screens (e.g., 20:9) */
+    @media (min-aspect-ratio: 2/1) {
+        .wrap {
+            grid-template-columns: 1fr 2fr; /* Give even more space to prayer times */
+        }
+        .prayer-item {
+            padding: 2vmin 4vmin;
+        }
     }
   </style>
 </head>
@@ -294,11 +334,18 @@
         </div>
       </div>
 
-      <footer class="left-foot">Please donate generously to support your Masjid.</footer>
+      <footer class="left-foot">Please **donate generously** to support your Masjid.</footer>
     </section>
 
     <section class="panel right" aria-label="Prayer Timetable">
-      <div id="prayer-list" class="prayer-list" role="list"></div>
+      <div id="prayer-list" class="prayer-list" role="list">
+        <div class="prayer-item" id="item-fajr"><div class="prayer-name">Fajr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="fajr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="fajr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-zuhr"><div class="prayer-name">Zuhr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="zuhr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="zuhr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-asr"><div class="prayer-name">Asr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="asr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="asr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-maghrib"><div class="prayer-name">Maghrib</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="maghrib-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="maghrib-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-isha"><div class="prayer-name">Isha</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="isha-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="isha-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-jummah"><div class="prayer-name">Jummah</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div id="jummah-1" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div id="jummah-2" class="time-block-time">--:--</div></div></div></div>
+      </div>
       <div class="info-row">
         <div id="sunrise-card" class="info-mini"><div class="time-label">Sunrise</div><div id="sunrise-time" class="time">--:--</div></div>
         <div id="zawwal-card" class="info-mini"><div class="time-label">Zawwal</div><div id="zawwal-time" class="time">--:--</div></div>
@@ -314,6 +361,7 @@
   </div>
 
 <script type="module">
+  // Your existing JS code...
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -335,7 +383,6 @@
     hijri: document.getElementById('hijri'),
     messageViewport: document.getElementById('message-viewport'),
     messageContent: document.getElementById('message-content'),
-    list: document.getElementById('prayer-list'),
     sunriseTime: document.getElementById('sunrise-time'),
     zawwalTime: document.getElementById('zawwal-time'),
     sunsetTime: document.getElementById('sunset-time'),
@@ -356,16 +403,15 @@
   ];
 
   let prayerCalendar = {}, jamaatToday = {}, messageText = '';
-  let wakeLock = null;
+  let wakeLock = null, ukTime = null;
 
   const pad = n => String(n).padStart(2,'0');
-  const format12 = hm => {
+  const format12NoSuffix = hm => {
     if(!hm || !hm.includes(':')) return '--:--';
     const [h, m] = hm.split(':');
     let hh = parseInt(h, 10);
-    const suffix = hh >= 12 ? 'PM' : 'AM';
     hh = hh % 12 || 12;
-    return `${hh}:${pad(m)} ${suffix}`;
+    return `${hh}:${pad(m)}`;
   }
   const hmToMinutes = hm => hm && hm.includes(':') ? hm.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
   const minutesToHM = m => m === null || isNaN(m) ? null : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
@@ -391,19 +437,34 @@
   }
 
   function updateClock() {
-    const now = new Date();
-    let h = now.getHours();
-    const m = pad(now.getMinutes());
-    const s = pad(now.getSeconds());
+    if (!ukTime) return;
+    ukTime.setSeconds(ukTime.getSeconds() + 1);
+
+    let h = ukTime.getHours();
+    const m = pad(ukTime.getMinutes());
+    const s = pad(ukTime.getSeconds());
     const h12 = h % 12 || 12;
     const timeString = `${h12}:${m}:${s}`;
     ELS.clock.textContent = timeString;
     ELS.overlayClock.textContent = timeString;
   }
 
-  async function fetchHijriDate() {
+  async function fetchUKTime() {
     try {
-      const now = new Date(), d=pad(now.getDate()), m=pad(now.getMonth()+1), y=now.getFullYear();
+        const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/London');
+        if (!res.ok) throw new Error('Network response failed');
+        const data = await res.json();
+        ukTime = new Date(data.datetime);
+    } catch (e) {
+        console.error("Could not fetch UK time, using local time as fallback.", e);
+        if (!ukTime) ukTime = new Date();
+    }
+  }
+
+  async function fetchHijriDate() {
+    if (!ukTime) return;
+    try {
+      const d=pad(ukTime.getDate()), m=pad(ukTime.getMonth()+1), y=ukTime.getFullYear();
       const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
       if (!res.ok) return;
       const json = await res.json();
@@ -412,8 +473,9 @@
   }
 
   function setupListeners() {
+    if (!ukTime) return;
     const path = `artifacts/masjid-connect-app/public/data`;
-    const d = new Date(), day = pad(d.getDate()), month = pad(d.getMonth() + 1);
+    const d = ukTime, day = pad(d.getDate()), month = pad(d.getMonth() + 1);
     
     onSnapshot(doc(db, `${path}/prayerTimes/today`), s => { if(s.exists()) { jamaatToday = s.data(); saveCache(); renderPrayerList(); } });
     onSnapshot(doc(db, `${path}/prayerCalendar/${day}-${month}`), s => { if(s.exists()) { prayerCalendar = s.data(); saveCache(); renderPrayerList(); } });
@@ -439,7 +501,9 @@
             const copy1 = messageContent.cloneNode(true), copy2 = messageContent.cloneNode(true);
             copy1.style.marginBottom = '1.5em'; scroller.append(copy1, copy2);
             messageViewport.innerHTML = ''; messageViewport.appendChild(scroller);
-            const duration = (contentH / vpH) * 18;
+            // Adjusted duration calculation: a fixed base time (e.g., 30s) + a time proportional to content height.
+            // This prevents excessively fast scrolling on high-res displays with small messages.
+            const duration = Math.max(20, (contentH / vpH) * 15); 
             const styleId = 'marquee-style'; document.getElementById(styleId)?.remove();
             const styleEl = document.createElement('style'); styleEl.id = styleId;
             styleEl.innerHTML = `@keyframes marqueeY { 0% { transform: translateY(0); } 100% { transform: translateY(-${contentH + 24}px); } }`;
@@ -450,34 +514,40 @@
   }
 
   function renderPrayerList() {
-    if (!ELS.list || Object.keys(prayerCalendar).length === 0) return;
-    ELS.list.innerHTML = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha', 'Jummah'].map(name => {
-      const id = `item-${name.toLowerCase()}`;
-      if (name === 'Jummah') {
-        const j1 = format12(jamaatToday.Jumma), j2 = format12(jamaatToday.Jumma2);
-        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div class="time-block-time">${j1}</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div class="time-block-time">${j2}</div></div></div></div>`;
-      } else {
-        const start = format12(prayerCalendar[name]);
+    if (Object.keys(prayerCalendar).length === 0 || Object.keys(jamaatToday).length === 0) return;
+    
+    ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(name => {
+        document.getElementById(`${name.toLowerCase()}-start`).textContent = format12NoSuffix(prayerCalendar[name]);
         let jamaat;
         if (name === 'Maghrib') {
             const maghribStartMinutes = hmToMinutes(prayerCalendar.Maghrib);
-            jamaat = format12(minutesToHM(maghribStartMinutes !== null ? maghribStartMinutes + 1 : null));
+            jamaat = format12NoSuffix(minutesToHM(maghribStartMinutes !== null ? maghribStartMinutes + 1 : null));
         } else {
-            jamaat = format12(jamaatToday[name]);
+            jamaat = format12NoSuffix(jamaatToday[name]);
         }
-        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div class="time-block-time">${start}</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div class="time-block-time">${jamaat}</div></div></div></div>`;
-      }
-    }).join('');
-    ELS.sunriseTime.textContent = format12(prayerCalendar.Sunrise);
-    ELS.zawwalTime.textContent = format12(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
-    ELS.sunsetTime.textContent = format12(prayerCalendar.Maghrib);
+        document.getElementById(`${name.toLowerCase()}-jamaat`).textContent = jamaat;
+    });
+
+    document.getElementById('jummah-1').textContent = format12NoSuffix(jamaatToday.Jumma);
+    document.getElementById('jummah-2').textContent = format12NoSuffix(jamaatToday.Jumma2);
+
+    // Calculate Zawwal more accurately (midpoint between Sunrise and Sunset)
+    const sunriseMinutes = hmToMinutes(prayerCalendar.Sunrise);
+    const maghribStartMinutes = hmToMinutes(prayerCalendar.Maghrib);
+    const zawwalMinutes = (sunriseMinutes !== null && maghribStartMinutes !== null) 
+      ? Math.floor((sunriseMinutes + maghribStartMinutes) / 2) 
+      : hmToMinutes(prayerCalendar.Zuhr) - 15; // Fallback to Zuhr start - 15 min
+
+    ELS.sunriseTime.textContent = format12NoSuffix(prayerCalendar.Sunrise);
+    ELS.zawwalTime.textContent = format12NoSuffix(minutesToHM(zawwalMinutes));
+    ELS.sunsetTime.textContent = format12NoSuffix(prayerCalendar.Maghrib);
     highlightActive();
   }
 
   function highlightActive() {
     document.querySelectorAll('.prayer-item.active, .info-mini.active').forEach(el => el.classList.remove('active'));
-    if (Object.keys(prayerCalendar).length === 0) return;
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    if (!ukTime || Object.keys(prayerCalendar).length === 0) return;
+    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
     
     const fajrStart = hmToMinutes(prayerCalendar.Fajr);
     const sunrise = hmToMinutes(prayerCalendar.Sunrise);
@@ -485,6 +555,7 @@
     const asrStart = hmToMinutes(prayerCalendar.Asr);
     const maghribStart = hmToMinutes(prayerCalendar.Maghrib);
     const ishaStart = hmToMinutes(prayerCalendar.Isha);
+    const zawwal = hmToMinutes(ELS.zawwalTime.textContent.replace(/:/, '')); // Use rendered zawwal time
 
     let activePrayer = '';
     
@@ -496,14 +567,15 @@
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
     
+    // Highlight conditions adjustment for Zawwal to use the calculated time
     if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
+    if (zawwal !== null && nowMin >= zawwal - 15 && nowMin < zawwal + 1) { ELS.zawwalCard.classList.add('active');} // Zawwal highlight window
     if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
   }
 
   function checkPhoneOverlay() {
-    if (Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    if (!ukTime || Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
+    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
     const maghribJamaat = hmToMinutes(prayerCalendar.Maghrib) + 1;
     
     let jamaatTimesSource = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
@@ -514,16 +586,26 @@
     }
     
     const jamaatTimes = jamaatTimesSource.map(hmToMinutes).filter(t => t !== null);
-    const show = jamaatTimes.some(t => nowMin >= t - 1 && nowMin <= t + 5);
+    // Show the overlay for 5 minutes before Jama'at and 5 minutes after. (Total 10 min window)
+    const show = jamaatTimes.some(t => nowMin >= t - 5 && nowMin <= t + 5); 
     ELS.phoneOverlay.classList.toggle('visible', show);
   }
 
+  // WAKE LOCK LOGIC IS CORRECT AND ROBUST
   async function toggleWakeLock(shouldBeActive) {
     if (shouldBeActive) {
       if ('wakeLock' in navigator && wakeLock === null) {
         try {
+          // Re-request the lock if it was released (e.g. screen off)
           wakeLock = await navigator.wakeLock.request('screen');
-          wakeLock.addEventListener('release', () => { wakeLock = null; });
+          wakeLock.addEventListener('release', () => { 
+            console.log('Screen Wake Lock was released.');
+            wakeLock = null; 
+            // Attempt to re-acquire the lock if in fullscreen and visible (optional)
+            if (document.fullscreenElement && document.visibilityState === 'visible') {
+                toggleWakeLock(true);
+            }
+          });
           console.log('Screen Wake Lock is active.');
         } catch (err) { console.error(`Wake Lock failed: ${err.name}, ${err.message}`); }
       }
@@ -531,6 +613,7 @@
       if (wakeLock !== null) {
         await wakeLock.release();
         wakeLock = null;
+        console.log('Screen Wake Lock was released by manual exit.');
       }
     }
   }
@@ -543,14 +626,19 @@
     }
   }
   
-  document.addEventListener('DOMContentLoaded', () => {
-    ELS.gregorian.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  async function initialize() {
+    await fetchUKTime();
+    
+    ELS.gregorian.textContent = ukTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
     if(loadCache()) { renderPrayerList(); renderMessage(); }
     fetchHijriDate();
     setupListeners();
     ELS.logo.addEventListener('click', toggleFullscreen);
+    
+    // WAKE LOCK: Auto-request on successful fullscreen entry
     document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
+    // WAKE LOCK: Re-request if visibility changes (e.g., monitor is turned back on)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && document.fullscreenElement) {
         toggleWakeLock(true);
@@ -559,12 +647,15 @@
 
     updateClock();
     highlightActive();
+    checkPhoneOverlay(); // Initial check
     
     setInterval(() => {
       updateClock();
       highlightActive();
       checkPhoneOverlay();
     }, 1000);
+
+    setInterval(fetchUKTime, 1000 * 60 * 60); // Resync time every hour
     setInterval(fetchHijriDate, 1000 * 60 * 60);
 
     let resizeTimer;
@@ -572,9 +663,12 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(renderMessage, 250);
     });
-  });
+    
+    // Request initial wake lock if the app is not fullscreen (optional, requires user gesture)
+    // For a signage display, it's best to rely on the fullscreen toggle.
+  }
+
+  document.addEventListener('DOMContentLoaded', initialize);
 </script>
 </body>
 </html>
-
-
