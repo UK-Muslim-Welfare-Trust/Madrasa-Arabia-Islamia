@@ -64,7 +64,7 @@
 
     /* --- Left Panel Redesign --- */
     .left {
-      display: flex; /* Switched to flexbox for better scaling */
+      display: flex; 
       flex-direction: column;
       text-align: center;
       gap: var(--gap);
@@ -75,7 +75,7 @@
       margin: 0 auto;
       cursor: pointer;
       transition: transform .25s ease;
-      flex-shrink: 0; /* Prevents shrinking */
+      flex-shrink: 0;
       padding: 1vh 0;
     }
     .masjid-logo:hover { transform: scale(1.02); }
@@ -268,7 +268,7 @@
     @media (orientation: portrait) {
       .wrap { grid-template-columns: 1fr; grid-auto-rows: auto 1fr; }
       .left {
-        display: block; /* Revert to block for portrait to allow natural flow */
+        display: block;
       }
       .clock { margin: 4vh 0; }
     }
@@ -300,7 +300,6 @@
 
     <section class="panel right" aria-label="Prayer Timetable">
       <div id="prayer-list" class="prayer-list" role="list">
-        <!-- Static HTML Structure for Prayers -->
         <div class="prayer-item" id="item-fajr"><div class="prayer-name">Fajr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="fajr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="fajr-jamaat" class="time-block-time">--:--</div></div></div></div>
         <div class="prayer-item" id="item-zuhr"><div class="prayer-name">Zuhr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="zuhr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="zuhr-jamaat" class="time-block-time">--:--</div></div></div></div>
         <div class="prayer-item" id="item-asr"><div class="prayer-name">Asr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="asr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="asr-jamaat" class="time-block-time">--:--</div></div></div></div>
