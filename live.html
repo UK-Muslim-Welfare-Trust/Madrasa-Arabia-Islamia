@@ -63,11 +63,11 @@
     }
 
     .left {
-        display: grid;
-        grid-template-rows: 22% 43% 1fr 15%;
-        text-align: center;
-        gap: var(--gap);
-        padding: 1vmin;
+      display: grid; /* Using grid for proportional rows */
+      grid-template-rows: 22% 43% 1fr 15%;
+      text-align: center;
+      gap: var(--gap);
+      padding: 1vmin;
     }
 
     .masjid-logo {
@@ -165,7 +165,7 @@
     .prayer-list {
       display: flex;
       flex-direction: column;
-      justify-content: space-around;
+      justify-content: space-around; /* Distributes items evenly */
     }
 
     .prayer-item {
@@ -355,6 +355,7 @@
 
   let prayerCalendar = {}, jamaatToday = {}, messageText = '';
   let wakeLock = null;
+  let ukTime = null;
 
   const pad = n => String(n).padStart(2,'0');
   const format12NoSuffix = hm => {
@@ -388,19 +389,35 @@
   }
 
   function updateClock() {
-    const now = new Date();
-    let h = now.getHours();
-    const m = pad(now.getMinutes());
-    const s = pad(now.getSeconds());
+    if (!ukTime) return;
+    ukTime.setSeconds(ukTime.getSeconds() + 1); // Increment local time object
+
+    let h = ukTime.getHours();
+    const m = pad(ukTime.getMinutes());
+    const s = pad(ukTime.getSeconds());
     const h12 = h % 12 || 12;
     const timeString = `${h12}:${m}:${s}`;
     ELS.clock.textContent = timeString;
     ELS.overlayClock.textContent = timeString;
   }
 
-  async function fetchHijriDate() {
+  async function fetchUKTime() {
     try {
-      const now = new Date(), d=pad(now.getDate()), m=pad(now.getMonth()+1), y=now.getFullYear();
+        const res = await fetch('http://worldtimeapi.org/api/timezone/Europe/London');
+        if (!res.ok) throw new Error('Network response failed');
+        const data = await res.json();
+        ukTime = new Date(data.datetime);
+        console.log("UK time synced:", ukTime);
+    } catch (e) {
+        console.error("Could not fetch UK time, using local time as fallback.", e);
+        if (!ukTime) ukTime = new Date(); // Use local time only if we have no time at all
+    }
+  }
+
+  async function fetchHijriDate() {
+    if (!ukTime) return;
+    try {
+      const d=pad(ukTime.getDate()), m=pad(ukTime.getMonth()+1), y=ukTime.getFullYear();
       const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
       if (!res.ok) return;
       const json = await res.json();
@@ -409,8 +426,9 @@
   }
 
   function setupListeners() {
+    if (!ukTime) return;
     const path = `artifacts/masjid-connect-app/public/data`;
-    const d = new Date(), day = pad(d.getDate()), month = pad(d.getMonth() + 1);
+    const d = ukTime, day = pad(d.getDate()), month = pad(d.getMonth() + 1);
     
     onSnapshot(doc(db, `${path}/prayerTimes/today`), s => { if(s.exists()) { jamaatToday = s.data(); saveCache(); renderPrayerList(); } });
     onSnapshot(doc(db, `${path}/prayerCalendar/${day}-${month}`), s => { if(s.exists()) { prayerCalendar = s.data(); saveCache(); renderPrayerList(); } });
@@ -473,8 +491,8 @@
 
   function highlightActive() {
     document.querySelectorAll('.prayer-item.active, .info-mini.active').forEach(el => el.classList.remove('active'));
-    if (Object.keys(prayerCalendar).length === 0) return;
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    if (!ukTime || Object.keys(prayerCalendar).length === 0) return;
+    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
     
     const fajrStart = hmToMinutes(prayerCalendar.Fajr);
     const sunrise = hmToMinutes(prayerCalendar.Sunrise);
@@ -499,8 +517,8 @@
   }
 
   function checkPhoneOverlay() {
-    if (Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), isFriday = now.getDay() === 5;
+    if (!ukTime || Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
+    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
     const maghribJamaat = hmToMinutes(prayerCalendar.Maghrib) + 1;
     
     let jamaatTimesSource = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
@@ -540,8 +558,10 @@
     }
   }
   
-  document.addEventListener('DOMContentLoaded', () => {
-    ELS.gregorian.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  async function initialize() {
+    await fetchUKTime();
+    
+    ELS.gregorian.textContent = ukTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
     if(loadCache()) { renderPrayerList(); renderMessage(); }
     fetchHijriDate();
@@ -562,6 +582,8 @@
       highlightActive();
       checkPhoneOverlay();
     }, 1000);
+
+    setInterval(fetchUKTime, 1000 * 60 * 60); // Resync time every hour
     setInterval(fetchHijriDate, 1000 * 60 * 60);
 
     let resizeTimer;
@@ -569,7 +591,9 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(renderMessage, 250);
     });
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', initialize);
 </script>
 </body>
 </html>
