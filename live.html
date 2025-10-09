@@ -62,12 +62,12 @@
       overflow: hidden;
     }
 
+    /* --- Left Panel Redesign --- */
     .left {
-      display: grid; /* Using grid for proportional rows */
-      grid-template-rows: 22% 43% 1fr 15%;
+      display: flex; /* Switched to flexbox for better scaling */
+      flex-direction: column;
       text-align: center;
       gap: var(--gap);
-      padding: 1vmin;
     }
 
     .masjid-logo {
@@ -75,22 +75,24 @@
       margin: 0 auto;
       cursor: pointer;
       transition: transform .25s ease;
-      align-self: center;
+      flex-shrink: 0; /* Prevents shrinking */
+      padding: 1vh 0;
     }
     .masjid-logo:hover { transform: scale(1.02); }
     .masjid-logo img {
       width: 100%;
-      height: 100%;
-      object-fit: contain;
+      height: auto;
       filter: invert(75%) sepia(13%) saturate(1558%) hue-rotate(359deg) brightness(91%) contrast(88%);
     }
 
     .clock {
+      flex-grow: 1; /* Clock now takes up all available space */
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       width: 100%;
+      min-height: 0;
     }
     .clock-time {
       font-family: 'Teko', sans-serif;
@@ -118,19 +120,18 @@
     }
 
     .message-block {
-      width: 90%;
-      max-width: 100%;
-      height: 100%;
+      width: 100%;
+      min-height: 10vmin;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1vmin;
       border-radius: calc(var(--radius) - 4px);
-      background: rgba(0,0,0,0.15);
+      background: rgba(0,0,0,0.2);
       overflow: hidden;
       text-align: center;
-      align-self: stretch;
-      justify-self: center;
+      flex-shrink: 0;
+      margin: 5vh 0; /* Adds vertical spacing */
     }
     .message-viewport {
       width: 100%;
@@ -152,9 +153,11 @@
       font-size: var(--font-size-sm);
       width: 100%;
       text-align: center;
-      align-self: end;
+      padding-top: 1vmin;
+      flex-shrink: 0;
     }
 
+    /* --- Right Panel Redesign --- */
     .right {
       display: grid;
       grid-template-rows: 1fr auto;
@@ -265,7 +268,7 @@
     @media (orientation: portrait) {
       .wrap { grid-template-columns: 1fr; grid-auto-rows: auto 1fr; }
       .left {
-        display: block;
+        display: block; /* Revert to block for portrait to allow natural flow */
       }
       .clock { margin: 4vh 0; }
     }
@@ -296,7 +299,15 @@
     </section>
 
     <section class="panel right" aria-label="Prayer Timetable">
-      <div id="prayer-list" class="prayer-list" role="list"></div>
+      <div id="prayer-list" class="prayer-list" role="list">
+        <!-- Static HTML Structure for Prayers -->
+        <div class="prayer-item" id="item-fajr"><div class="prayer-name">Fajr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="fajr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="fajr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-zuhr"><div class="prayer-name">Zuhr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="zuhr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="zuhr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-asr"><div class="prayer-name">Asr</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="asr-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="asr-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-maghrib"><div class="prayer-name">Maghrib</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="maghrib-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="maghrib-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-isha"><div class="prayer-name">Isha</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div id="isha-start" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div id="isha-jamaat" class="time-block-time">--:--</div></div></div></div>
+        <div class="prayer-item" id="item-jummah"><div class="prayer-name">Jummah</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div id="jummah-1" class="time-block-time">--:--</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div id="jummah-2" class="time-block-time">--:--</div></div></div></div>
+      </div>
       <div class="info-row">
         <div id="sunrise-card" class="info-mini"><div class="time-label">Sunrise</div><div id="sunrise-time" class="time">--:--</div></div>
         <div id="zawwal-card" class="info-mini"><div class="time-label">Zawwal</div><div id="zawwal-time" class="time">--:--</div></div>
@@ -333,7 +344,6 @@
     hijri: document.getElementById('hijri'),
     messageViewport: document.getElementById('message-viewport'),
     messageContent: document.getElementById('message-content'),
-    list: document.getElementById('prayer-list'),
     sunriseTime: document.getElementById('sunrise-time'),
     zawwalTime: document.getElementById('zawwal-time'),
     sunsetTime: document.getElementById('sunset-time'),
@@ -354,8 +364,7 @@
   ];
 
   let prayerCalendar = {}, jamaatToday = {}, messageText = '';
-  let wakeLock = null;
-  let ukTime = null;
+  let wakeLock = null, ukTime = null;
 
   const pad = n => String(n).padStart(2,'0');
   const format12NoSuffix = hm => {
@@ -390,7 +399,7 @@
 
   function updateClock() {
     if (!ukTime) return;
-    ukTime.setSeconds(ukTime.getSeconds() + 1); // Increment local time object
+    ukTime.setSeconds(ukTime.getSeconds() + 1);
 
     let h = ukTime.getHours();
     const m = pad(ukTime.getMinutes());
@@ -403,14 +412,13 @@
 
   async function fetchUKTime() {
     try {
-        const res = await fetch('http://worldtimeapi.org/api/timezone/Europe/London');
+        const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/London');
         if (!res.ok) throw new Error('Network response failed');
         const data = await res.json();
         ukTime = new Date(data.datetime);
-        console.log("UK time synced:", ukTime);
     } catch (e) {
         console.error("Could not fetch UK time, using local time as fallback.", e);
-        if (!ukTime) ukTime = new Date(); // Use local time only if we have no time at all
+        if (!ukTime) ukTime = new Date();
     }
   }
 
@@ -465,14 +473,10 @@
   }
 
   function renderPrayerList() {
-    if (!ELS.list || Object.keys(prayerCalendar).length === 0) return;
-    ELS.list.innerHTML = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha', 'Jummah'].map(name => {
-      const id = `item-${name.toLowerCase()}`;
-      if (name === 'Jummah') {
-        const j1 = format12NoSuffix(jamaatToday.Jumma), j2 = format12NoSuffix(jamaatToday.Jumma2);
-        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block jamaat-time"><div class="time-block-label">1st Jama'at</div><div class="time-block-time">${j1}</div></div><div class="time-block jamaat-time"><div class="time-block-label">2nd Jama'at</div><div class="time-block-time">${j2}</div></div></div></div>`;
-      } else {
-        const start = format12NoSuffix(prayerCalendar[name]);
+    if (Object.keys(prayerCalendar).length === 0 || Object.keys(jamaatToday).length === 0) return;
+    
+    ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(name => {
+        document.getElementById(`${name.toLowerCase()}-start`).textContent = format12NoSuffix(prayerCalendar[name]);
         let jamaat;
         if (name === 'Maghrib') {
             const maghribStartMinutes = hmToMinutes(prayerCalendar.Maghrib);
@@ -480,9 +484,12 @@
         } else {
             jamaat = format12NoSuffix(jamaatToday[name]);
         }
-        return `<div class="prayer-item" id="${id}"><div class="prayer-name">${name}</div><div class="prayer-times"><div class="time-block start-time"><div class="time-block-label">Start</div><div class="time-block-time">${start}</div></div><div class="time-block jamaat-time"><div class="time-block-label">Jama'at</div><div class="time-block-time">${jamaat}</div></div></div></div>`;
-      }
-    }).join('');
+        document.getElementById(`${name.toLowerCase()}-jamaat`).textContent = jamaat;
+    });
+
+    document.getElementById('jummah-1').textContent = format12NoSuffix(jamaatToday.Jumma);
+    document.getElementById('jummah-2').textContent = format12NoSuffix(jamaatToday.Jumma2);
+
     ELS.sunriseTime.textContent = format12NoSuffix(prayerCalendar.Sunrise);
     ELS.zawwalTime.textContent = format12NoSuffix(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
     ELS.sunsetTime.textContent = format12NoSuffix(prayerCalendar.Maghrib);
@@ -511,9 +518,9 @@
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
     
-    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) ELS.sunriseCard.classList.add('active');
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) ELS.zawwalCard.classList.add('active');
-    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) ELS.sunsetCard.classList.add('active');
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
   }
 
   function checkPhoneOverlay() {
