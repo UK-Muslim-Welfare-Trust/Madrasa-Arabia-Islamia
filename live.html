@@ -363,7 +363,8 @@
   ];
 
   let prayerCalendar = {}, jamaatToday = {}, messageText = '';
-  let wakeLock = null, ukTime = null;
+  let wakeLock = null, ukTime = null, currentDateStr = '';
+
 
   const pad = n => String(n).padStart(2,'0');
   const format12NoSuffix = hm => {
@@ -563,41 +564,65 @@
         document.exitFullscreen();
     }
   }
+
+  // Add this function somewhere before the initialize() function
+async function refreshDailyData() {
+  if (!ukTime) return;
+  
+  // Update the date strings
+  currentDateStr = ukTime.toISOString().slice(0, 10); // Stores date as "YYYY-MM-DD"
+  ELS.gregorian.textContent = ukTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  
+  // Fetch the new Hijri date and prayer times for the new day
+  await fetchHijriDate();
+  setupListeners(); // This will now use the new day's date to fetch from Firestore
+}
   
   async function initialize() {
-    await fetchUKTime();
-    
-    ELS.gregorian.textContent = ukTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    
-    if(loadCache()) { renderPrayerList(); renderMessage(); }
-    fetchHijriDate();
-    setupListeners();
-    ELS.logo.addEventListener('click', toggleFullscreen);
-    document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && document.fullscreenElement) {
-        toggleWakeLock(true);
-      }
-    });
+  await fetchUKTime();
+  
+  // Initial setup of daily data
+  await refreshDailyData();
+  
+  if(loadCache()) { renderPrayerList(); renderMessage(); }
+  
+  ELS.logo.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && document.fullscreenElement) {
+      toggleWakeLock(true);
+    }
+  });
 
+  updateClock();
+  highlightActive();
+  
+  // Main 1-second interval for clock and highlights
+  setInterval(() => {
     updateClock();
     highlightActive();
-    
-    setInterval(() => {
-      updateClock();
-      highlightActive();
-      checkPhoneOverlay();
-    }, 1000);
+    checkPhoneOverlay();
+  }, 1000);
 
-    setInterval(fetchUKTime, 1000 * 60 * 60); // Resync time every hour
-    setInterval(fetchHijriDate, 1000 * 60 * 60);
+  // Interval to check for midnight crossing
+  setInterval(async () => {
+    const newDateStr = ukTime.toISOString().slice(0, 10);
+    if (newDateStr !== currentDateStr) {
+      console.log('Midnight passed. Refreshing daily data...');
+      await fetchUKTime(); // Re-sync time first
+      await refreshDailyData();
+    }
+  }, 60000); // Check every 60 seconds
 
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(renderMessage, 250);
-    });
-  }
+  // Hourly re-sync for time
+  setInterval(fetchUKTime, 1000 * 60 * 60);
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderMessage, 250);
+  });
+}
 
   document.addEventListener('DOMContentLoaded', initialize);
 </script>
