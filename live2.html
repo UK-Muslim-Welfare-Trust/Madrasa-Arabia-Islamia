@@ -17,20 +17,21 @@
       --text-secondary-color: #a0a0a0;
       --highlight-color: #d4af37;
 
-      /* Responsive Sizing using vmin for robust scaling.
-         By using `vmin` (the smaller of viewport width or height), we ensure
-         that the UI scales proportionally even on ultrawide displays, preventing
-         vertical overflow when height is the limiting dimension.
+      /* Dynamic Sizing using calc() and Container Query Min (cqmin).
+         This is the most robust approach. `cqmin` uses the smaller value of
+         either the container's width or height for scaling. This prevents
+         vertical overflow on ultrawide displays where height is the
+         limiting dimension, ensuring perfect proportions on any aspect ratio.
       */
-      --gap: clamp(0.75rem, 2.5vmin, 1.5rem);
-      --radius: clamp(0.75rem, 3vmin, 1.75rem);
+      --gap: calc(0.5rem + 1cqmin);
+      --radius: calc(0.5rem + 1.2cqmin);
 
-      /* Fluid Typography Scale using vmin */
-      --font-size-sm: clamp(0.8rem, 2vmin + 0.1rem, 1.25rem);
-      --font-size-md: clamp(1rem, 2.5vmin + 0.2rem, 1.75rem);
-      --font-size-lg: clamp(1.6rem, 5vmin + 0.5rem, 3.5rem);
-      --font-size-xl: clamp(2rem, 7vmin + 0.5rem, 4.5rem);
-      --font-size-xxl: clamp(8rem, 30vmin, 20rem);
+      /* Dynamic Typography Scale using cqmin */
+      --font-size-sm: calc(0.7rem + 0.5cqmin);
+      --font-size-md: calc(0.8rem + 0.8cqmin);
+      --font-size-lg: calc(1rem + 2.5cqmin);
+      --font-size-xl: calc(1.2rem + 4cqmin);
+      --font-size-xxl: calc(2rem + 20cqmin);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -60,6 +61,7 @@
     }
 
     .panel {
+      container-type: size; /* Define panels as query containers for BOTH width and height */
       background: var(--surface-color);
       border-radius: var(--radius);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.55);
@@ -76,7 +78,9 @@
     }
 
     .masjid-logo {
-      width: clamp(150px, 20vw, 350px); /* Responsive logo size */
+      /* Adjusted to cover more of the container, scaling dynamically with cqmin */
+      width: calc(30% + 40cqmin); 
+      max-width: 90%; /* Prevent it from becoming excessively wide in very wide, short containers */
       margin: 0 auto;
       cursor: pointer;
       transition: transform .25s ease;
@@ -168,7 +172,6 @@
       display: grid;
       grid-template-rows: 1fr auto;
       gap: var(--gap);
-      padding: calc(var(--gap) * 1.5);
     }
 
     .prayer-list {
@@ -292,8 +295,6 @@
     }
 
     /* --- LANDSCAPE ONLY MODE --- */
-    /* This media query will hide the main content and show the 'Rotate Device' overlay 
-       when the screen is in a portrait orientation. */
     @media (orientation: portrait) {
       .wrap { display: none; }
       .rotate-overlay { display: flex; }
