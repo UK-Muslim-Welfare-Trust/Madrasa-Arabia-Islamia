@@ -323,9 +323,9 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyDuq7jYQcKDKY3UWNxQwP51fKRwjCERuvo",
     authDomain: "wakefield-central-mosque.firebaseapp.com",
     projectId: "wakefield-central-mosque",
@@ -333,11 +333,11 @@
     messagingSenderId: "998395111777",
     appId: "1:998395111777:web:5492302e7279822d5cbd20",
     measurementId: "G-NXER4ENDE0"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const ELS = {
+const ELS = {
     clock: document.getElementById('clock-time'),
     gregorian: document.getElementById('gregorian'),
     hijri: document.getElementById('hijri'),
@@ -352,102 +352,120 @@
     logo: document.getElementById('logo-toggle'),
     phoneOverlay: document.getElementById('phone-overlay'),
     overlayClock: document.getElementById('overlay-clock'),
-  };
+};
 
-  const HADITHS = [
+const HADITHS = [
     "The best of you are those who learn the Qur'an and teach it.",
     "The most beloved deed to Allah is that which is most consistent, even if it is little.",
     "Whoever builds a mosque for Allah, Allah will build for him a house in Paradise.",
     "Charity extinguishes sin as water extinguishes fire.",
     "He who is not grateful to people is not grateful to Allah."
-  ];
+];
 
-  let prayerCalendar = {}, jamaatToday = {}, messageText = '';
-  let wakeLock = null, ukTime = null, currentDateStr = '';
+// MODIFICATION: Added helper arrays for manual date formatting.
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+let prayerCalendar = {}, jamaatToday = {}, messageText = '';
+// MODIFICATION: Replaced `ukTime` with `timeOffset` for robust time syncing.
+let wakeLock = null, timeOffset = 0, currentDateStr = '';
 
 
-  const pad = n => String(n).padStart(2,'0');
-  const format12NoSuffix = hm => {
-    if(!hm || !hm.includes(':')) return '--:--';
+const pad = n => String(n).padStart(2, '0');
+const format12NoSuffix = hm => {
+    if (!hm || !hm.includes(':')) return '--:--';
     const [h, m] = hm.split(':');
     let hh = parseInt(h, 10);
     hh = hh % 12 || 12;
     return `${hh}:${pad(m)}`;
-  }
-  const hmToMinutes = hm => hm && hm.includes(':') ? hm.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
-  const minutesToHM = m => m === null || isNaN(m) ? null : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
-  
-  function saveCache() {
-      try {
-          localStorage.setItem('masjid_prayerCalendar', JSON.stringify(prayerCalendar));
-          localStorage.setItem('masjid_jamaatToday', JSON.stringify(jamaatToday));
-          localStorage.setItem('masjid_messageText', messageText);
-      } catch (e) { console.warn('Failed to save cache', e); }
-  }
+}
+const hmToMinutes = hm => hm && hm.includes(':') ? hm.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
+const minutesToHM = m => m === null || isNaN(m) ? null : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
 
-  function loadCache() {
-      try {
-          const calendar = localStorage.getItem('masjid_prayerCalendar');
-          const jamaat = localStorage.getItem('masjid_jamaatToday');
-          const message = localStorage.getItem('masjid_messageText');
-          if(calendar) prayerCalendar = JSON.parse(calendar);
-          if(jamaat) jamaatToday = JSON.parse(jamaat);
-          if(message) messageText = message;
-          return true;
-      } catch (e) { return false; }
-  }
+// MODIFICATION: New function to get the accurately corrected time on demand.
+function getCurrentTime() {
+    return new Date(Date.now() + timeOffset);
+}
 
-  function updateClock() {
-    if (!ukTime) return;
-    ukTime.setSeconds(ukTime.getSeconds() + 1);
+function saveCache() {
+    try {
+        localStorage.setItem('masjid_prayerCalendar', JSON.stringify(prayerCalendar));
+        localStorage.setItem('masjid_jamaatToday', JSON.stringify(jamaatToday));
+        localStorage.setItem('masjid_messageText', messageText);
+    } catch (e) { console.warn('Failed to save cache', e); }
+}
 
-    let h = ukTime.getHours();
-    const m = pad(ukTime.getMinutes());
-    const s = pad(ukTime.getSeconds());
+function loadCache() {
+    try {
+        const calendar = localStorage.getItem('masjid_prayerCalendar');
+        const jamaat = localStorage.getItem('masjid_jamaatToday');
+        const message = localStorage.getItem('masjid_messageText');
+        if (calendar) prayerCalendar = JSON.parse(calendar);
+        if (jamaat) jamaatToday = JSON.parse(jamaat);
+        if (message) messageText = message;
+        return true;
+    } catch (e) { return false; }
+}
+
+// MODIFICATION: `updateClock` now gets the fresh, corrected time on every tick.
+function updateClock() {
+    const now = getCurrentTime();
+    let h = now.getHours();
+    const m = pad(now.getMinutes());
+    const s = pad(now.getSeconds());
     const h12 = h % 12 || 12;
     const timeString = `${h12}:${m}:${s}`;
     ELS.clock.textContent = timeString;
     ELS.overlayClock.textContent = timeString;
-  }
+}
 
-  async function fetchUKTime() {
+// MODIFICATION: `fetchUKTime` now calculates the offset instead of storing a Date object.
+async function fetchUKTime() {
     try {
         const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/London');
         if (!res.ok) throw new Error('Network response failed');
         const data = await res.json();
-        ukTime = new Date(data.datetime);
+        const serverTime = new Date(data.datetime).getTime();
+        const localTime = Date.now();
+        timeOffset = serverTime - localTime;
+        console.log(`Time synchronized. Offset is ${timeOffset}ms.`);
     } catch (e) {
         console.error("Could not fetch UK time, using local time as fallback.", e);
-        if (!ukTime) ukTime = new Date();
+        timeOffset = 0; // Fallback to local time
     }
-  }
+}
 
-  async function fetchHijriDate() {
-    if (!ukTime) return;
+// MODIFICATION: Uses `getCurrentTime()`
+async function fetchHijriDate() {
+    const now = getCurrentTime();
     try {
-      const d=pad(ukTime.getDate()), m=pad(ukTime.getMonth()+1), y=ukTime.getFullYear();
-      const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json?.data?.hijri) ELS.hijri.textContent = `${json.data.hijri.day} ${json.data.hijri.month.en} ${json.data.hijri.year}H`;
+        const d = pad(now.getDate()),
+            m = pad(now.getMonth() + 1),
+            y = now.getFullYear();
+        const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json?.data?.hijri) ELS.hijri.textContent = `${json.data.hijri.day} ${json.data.hijri.month.en} ${json.data.hijri.year}H`;
     } catch (e) { console.warn('Hijri fetch failed', e); }
-  }
+}
 
-  function setupListeners() {
-    if (!ukTime) return;
+// MODIFICATION: Uses `getCurrentTime()`
+function setupListeners() {
+    const now = getCurrentTime();
     const path = `artifacts/masjid-connect-app/public/data`;
-    const d = ukTime, day = pad(d.getDate()), month = pad(d.getMonth() + 1);
-    
-    onSnapshot(doc(db, `${path}/prayerTimes/today`), s => { if(s.exists()) { jamaatToday = s.data(); saveCache(); renderPrayerList(); } });
-    onSnapshot(doc(db, `${path}/prayerCalendar/${day}-${month}`), s => { if(s.exists()) { prayerCalendar = s.data(); saveCache(); renderPrayerList(); } });
+    const day = pad(now.getDate()),
+        month = pad(now.getMonth() + 1);
+
+    onSnapshot(doc(db, `${path}/prayerTimes/today`), s => { if (s.exists()) { jamaatToday = s.data(); saveCache(); renderPrayerList(); } });
+    onSnapshot(doc(db, `${path}/prayerCalendar/${day}-${month}`), s => { if (s.exists()) { prayerCalendar = s.data(); saveCache(); renderPrayerList(); } });
     onSnapshot(doc(db, `${path}/message/message`), s => {
-      messageText = (s.exists() && s.data().text && String(s.data().text).trim()) ? String(s.data().text).trim() : '';
-      saveCache();
-      renderMessage();
+        messageText = (s.exists() && s.data().text && String(s.data().text).trim()) ? String(s.data().text).trim() : '';
+        saveCache();
+        renderMessage();
     });
-  }
-  
-  function renderMessage() {
+}
+
+function renderMessage() {
     const txt = messageText || HADITHS[Math.floor(Math.random() * HADITHS.length)];
     const { messageViewport, messageContent } = ELS;
     if (!messageViewport || !messageContent) return;
@@ -458,23 +476,29 @@
     requestAnimationFrame(() => {
         const vpH = messageViewport.clientHeight, contentH = messageContent.scrollHeight;
         if (contentH > vpH) {
-            const scroller = document.createElement('div'); scroller.className = 'message-scroller';
-            const copy1 = messageContent.cloneNode(true), copy2 = messageContent.cloneNode(true);
-            copy1.style.marginBottom = '1.5em'; scroller.append(copy1, copy2);
-            messageViewport.innerHTML = ''; messageViewport.appendChild(scroller);
+            const scroller = document.createElement('div');
+            scroller.className = 'message-scroller';
+            const copy1 = messageContent.cloneNode(true),
+                copy2 = messageContent.cloneNode(true);
+            copy1.style.marginBottom = '1.5em';
+            scroller.append(copy1, copy2);
+            messageViewport.innerHTML = '';
+            messageViewport.appendChild(scroller);
             const duration = (contentH / vpH) * 18;
-            const styleId = 'marquee-style'; document.getElementById(styleId)?.remove();
-            const styleEl = document.createElement('style'); styleEl.id = styleId;
+            const styleId = 'marquee-style';
+            document.getElementById(styleId)?.remove();
+            const styleEl = document.createElement('style');
+            styleEl.id = styleId;
             styleEl.innerHTML = `@keyframes marqueeY { 0% { transform: translateY(0); } 100% { transform: translateY(-${contentH + 24}px); } }`;
             document.head.appendChild(styleEl);
             scroller.style.animation = `marqueeY ${duration}s linear infinite`;
         }
     });
-  }
+}
 
-  function renderPrayerList() {
+function renderPrayerList() {
     if (Object.keys(prayerCalendar).length === 0 || Object.keys(jamaatToday).length === 0) return;
-    
+
     ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(name => {
         document.getElementById(`${name.toLowerCase()}-start`).textContent = format12NoSuffix(prayerCalendar[name]);
         let jamaat;
@@ -494,13 +518,17 @@
     ELS.zawwalTime.textContent = format12NoSuffix(minutesToHM(hmToMinutes(prayerCalendar.Zuhr) - 15));
     ELS.sunsetTime.textContent = format12NoSuffix(prayerCalendar.Maghrib);
     highlightActive();
-  }
+}
 
-  function highlightActive() {
+// MODIFICATION: Uses `getCurrentTime()`
+function highlightActive() {
     document.querySelectorAll('.prayer-item.active, .info-mini.active').forEach(el => el.classList.remove('active'));
-    if (!ukTime || Object.keys(prayerCalendar).length === 0) return;
-    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
-    
+    if (Object.keys(prayerCalendar).length === 0) return;
+
+    const now = getCurrentTime();
+    const nowMin = now.getHours() * 60 + now.getMinutes(),
+        isFriday = now.getDay() === 5;
+
     const fajrStart = hmToMinutes(prayerCalendar.Fajr);
     const sunrise = hmToMinutes(prayerCalendar.Sunrise);
     const zuhrStart = hmToMinutes(prayerCalendar.Zuhr);
@@ -509,7 +537,7 @@
     const ishaStart = hmToMinutes(prayerCalendar.Isha);
 
     let activePrayer = '';
-    
+
     if (ishaStart !== null && (nowMin >= ishaStart || nowMin < fajrStart)) { activePrayer = 'Isha';
     } else if (maghribStart !== null && ishaStart !== null && nowMin >= maghribStart && nowMin < ishaStart - 1) { activePrayer = 'Maghrib';
     } else if (asrStart !== null && maghribStart !== null && nowMin >= asrStart && nowMin < maghribStart - 15) { activePrayer = 'Asr';
@@ -517,114 +545,117 @@
     } else if (fajrStart !== null && sunrise !== null && nowMin >= fajrStart && nowMin < sunrise) { activePrayer = 'Fajr'; }
 
     if (activePrayer) document.getElementById(`item-${activePrayer.toLowerCase()}`)?.classList.add('active');
-    
-    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
-    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active');}
-    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active');}
-  }
 
-  function checkPhoneOverlay() {
-    if (!ukTime || Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
-    const nowMin = ukTime.getHours() * 60 + ukTime.getMinutes(), isFriday = ukTime.getDay() === 5;
+    if (sunrise !== null && nowMin >= sunrise && nowMin < sunrise + 15) { ELS.sunriseCard.classList.add('active'); }
+    if (zuhrStart !== null && nowMin >= zuhrStart - 15 && nowMin < zuhrStart) { ELS.zawwalCard.classList.add('active'); }
+    if (maghribStart !== null && nowMin >= maghribStart - 15 && nowMin < maghribStart) { ELS.sunsetCard.classList.add('active'); }
+}
+
+// MODIFICATION: Uses `getCurrentTime()`
+function checkPhoneOverlay() {
+    if (Object.keys(jamaatToday).length === 0 || Object.keys(prayerCalendar).length === 0) return;
+    const now = getCurrentTime();
+    const nowMin = now.getHours() * 60 + now.getMinutes(),
+        isFriday = now.getDay() === 5;
     const maghribJamaat = hmToMinutes(prayerCalendar.Maghrib) + 1;
-    
+
     let jamaatTimesSource = [jamaatToday.Fajr, jamaatToday.Asr, minutesToHM(maghribJamaat), jamaatToday.Isha];
     if (isFriday) {
         jamaatTimesSource.push(jamaatToday.Jumma, jamaatToday.Jumma2);
     } else {
         jamaatTimesSource.push(jamaatToday.Zuhr);
     }
-    
+
     const jamaatTimes = jamaatTimesSource.map(hmToMinutes).filter(t => t !== null);
     const show = jamaatTimes.some(t => nowMin >= t - 1 && nowMin <= t + 5);
     ELS.phoneOverlay.classList.toggle('visible', show);
-  }
+}
 
-  async function toggleWakeLock(shouldBeActive) {
+async function toggleWakeLock(shouldBeActive) {
     if (shouldBeActive) {
-      if ('wakeLock' in navigator && wakeLock === null) {
-        try {
-          wakeLock = await navigator.wakeLock.request('screen');
-          wakeLock.addEventListener('release', () => { wakeLock = null; });
-          console.log('Screen Wake Lock is active.');
-        } catch (err) { console.error(`Wake Lock failed: ${err.name}, ${err.message}`); }
-      }
+        if ('wakeLock' in navigator && wakeLock === null) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => { wakeLock = null; });
+                console.log('Screen Wake Lock is active.');
+            } catch (err) { console.error(`Wake Lock failed: ${err.name}, ${err.message}`); }
+        }
     } else {
-      if (wakeLock !== null) {
-        await wakeLock.release();
-        wakeLock = null;
-      }
+        if (wakeLock !== null) {
+            await wakeLock.release();
+            wakeLock = null;
+        }
     }
-  }
+}
 
-  function toggleFullscreen() {
+function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(e => console.warn(e));
     } else if (document.exitFullscreen) {
         document.exitFullscreen();
     }
-  }
-
-  // Add this function somewhere before the initialize() function
-async function refreshDailyData() {
-  if (!ukTime) return;
-  
-  // Update the date strings
-  currentDateStr = ukTime.toISOString().slice(0, 10); // Stores date as "YYYY-MM-DD"
-  ELS.gregorian.textContent = ukTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  
-  // Fetch the new Hijri date and prayer times for the new day
-  await fetchHijriDate();
-  setupListeners(); // This will now use the new day's date to fetch from Firestore
 }
-  
-  async function initialize() {
-  await fetchUKTime();
-  
-  // Initial setup of daily data
-  await refreshDailyData();
-  
-  if(loadCache()) { renderPrayerList(); renderMessage(); }
-  
-  ELS.logo.addEventListener('click', toggleFullscreen);
-  document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && document.fullscreenElement) {
-      toggleWakeLock(true);
-    }
-  });
 
-  updateClock();
-  highlightActive();
-  
-  // Main 1-second interval for clock and highlights
-  setInterval(() => {
+// MODIFICATION: Updated to use the manual, reliable date formatting.
+async function refreshDailyData() {
+    const now = getCurrentTime();
+    currentDateStr = now.toISOString().slice(0, 10);
+
+    const dayName = WEEKDAY_NAMES[now.getDay()];
+    const dayOfMonth = now.getDate();
+    const monthName = MONTH_NAMES[now.getMonth()];
+    const year = now.getFullYear();
+    ELS.gregorian.textContent = `${dayName}, ${dayOfMonth} ${monthName} ${year}`;
+
+    await fetchHijriDate();
+    setupListeners();
+}
+
+async function initialize() {
+    await fetchUKTime();
+
+    await refreshDailyData();
+
+    if (loadCache()) { renderPrayerList(); renderMessage(); }
+
+    ELS.logo.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', () => toggleWakeLock(!!document.fullscreenElement));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && document.fullscreenElement) {
+            toggleWakeLock(true);
+        }
+    });
+
     updateClock();
     highlightActive();
-    checkPhoneOverlay();
-  }, 1000);
 
-  // Interval to check for midnight crossing
-  setInterval(async () => {
-    const newDateStr = ukTime.toISOString().slice(0, 10);
-    if (newDateStr !== currentDateStr) {
-      console.log('Midnight passed. Refreshing daily data...');
-      await fetchUKTime(); // Re-sync time first
-      await refreshDailyData();
-    }
-  }, 60000); // Check every 60 seconds
+    setInterval(() => {
+        updateClock();
+        highlightActive();
+        checkPhoneOverlay();
+    }, 1000);
 
-  // Hourly re-sync for time
-  setInterval(fetchUKTime, 1000 * 60 * 60);
+    // MODIFICATION: Midnight check interval now uses `getCurrentTime`.
+    setInterval(async () => {
+        const newDateStr = getCurrentTime().toISOString().slice(0, 10);
+        if (newDateStr !== currentDateStr) {
+            console.log('Midnight passed. Refreshing daily data...');
+            await fetchUKTime();
+            await refreshDailyData();
+        }
+    }, 60000);
 
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(renderMessage, 250);
-  });
+    setInterval(fetchUKTime, 1000 * 60 * 60);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(renderMessage, 250);
+    });
 }
 
-  document.addEventListener('DOMContentLoaded', initialize);
+document.addEventListener('DOMContentLoaded', initialize);
+
 </script>
 </body>
 </html>
