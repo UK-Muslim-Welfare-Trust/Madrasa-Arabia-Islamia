@@ -21,16 +21,12 @@
       --gap: calc(0.5rem + 1cqmin);
       --radius: calc(0.5rem + 1.2cqmin);
 
-      /* ENHANCED Dynamic Typography Scale for long-distance visibility.
-         The base `rem` and dynamic `cqmin` values have been significantly
-         increased to make all text readable from ~10 meters away on a
-         sufficiently large display.
-      */
-      --font-size-sm: calc(1.2rem + 0.8cqmin);
-      --font-size-md: calc(1.5rem + 1.2cqmin);
-      --font-size-lg: calc(2rem + 4cqmin);
-      --font-size-xl: calc(2.5rem + 6cqmin);
-      --font-size-xxl: calc(4rem + 25cqmin);
+      /* ENHANCED & STABLE Dynamic Typography Scale for long-distance visibility. */
+      --font-size-sm: calc(1rem + 0.8cqmin);
+      --font-size-md: calc(1.2rem + 1.2cqmin);
+      --font-size-lg: calc(1.8rem + 3.5cqmin);
+      --font-size-xl: calc(2.2rem + 5.5cqmin);
+      --font-size-xxl: calc(3rem + 22cqmin);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,14 +49,14 @@
 
     .wrap {
       display: grid;
-      grid-template-columns: 1fr 1.3fr; /* Maintained 2-panel aspect ratio */
+      grid-template-columns: 1fr 1.3fr;
       gap: var(--gap);
       height: 100%;
       width: 100%;
     }
 
     .panel {
-      container-type: size; /* Define panels as query containers for BOTH width and height */
+      container-type: size;
       background: var(--surface-color);
       border-radius: var(--radius);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.55);
@@ -72,18 +68,18 @@
 
     /* --- Left Panel Redesign --- */
     .left {
+      display: grid;
+      grid-template-rows: auto 1fr auto auto; /* logo, clock, message, footer */
       text-align: center;
       gap: var(--gap);
     }
 
     .masjid-logo {
       width: calc(30% + 40cqmin); 
-      max-width: 90%; /* Prevent it from becoming excessively wide in very wide, short containers */
+      max-width: 90%; 
       margin: 0 auto;
       cursor: pointer;
       transition: transform .25s ease;
-      flex-shrink: 0;
-      padding-bottom: var(--gap);
     }
     .masjid-logo:hover { transform: scale(1.02); }
     .masjid-logo img {
@@ -93,7 +89,6 @@
     }
 
     .clock {
-      flex-grow: 1; /* Clock takes up all available space */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -138,8 +133,6 @@
       background: rgba(0,0,0,0.2);
       overflow: hidden;
       text-align: center;
-      flex-shrink: 0;
-      margin: var(--gap) 0;
     }
     .message-viewport {
       width: 100%;
@@ -161,28 +154,32 @@
       font-size: var(--font-size-sm);
       width: 100%;
       text-align: center;
-      padding-top: var(--gap);
-      flex-shrink: 0;
     }
 
     /* --- Right Panel Redesign --- */
     .right {
-      display: grid;
-      grid-template-rows: 1fr auto;
+      /* CRITICAL FIX: Changed from grid to a vertical flex layout.
+         This is more robust for stacking elements vertically.
+      */
+      display: flex;
+      flex-direction: column;
       gap: var(--gap);
+      min-height: 0;
     }
 
     .prayer-list {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between; /* Changed for better vertical distribution */
+      flex-grow: 1; /* CRITICAL FIX: Allows the list to take up ALL available space. */
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      align-items: center;
+      min-height: 0;
     }
 
     .prayer-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: calc(var(--gap) / 2) calc(var(--gap) * 1.5); /* Reduced vertical padding */
+      padding: calc(var(--gap) / 2) calc(var(--gap) * 1.5);
       border-radius: var(--radius);
       border-left: 8px solid transparent;
       transition: all 0.3s ease-in-out;
@@ -224,6 +221,7 @@
     }
     
     .info-row {
+      flex-shrink: 0; /* CRITICAL FIX: Prevents this row from being squished. */
       display: flex;
       gap: var(--gap);
       justify-content: center;
