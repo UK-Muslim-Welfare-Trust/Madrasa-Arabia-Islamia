@@ -419,20 +419,42 @@ function updateClock() {
     ELS.overlayClock.textContent = timeString;
 }
 
-// MODIFICATION: `fetchUKTime` now calculates the offset instead of storing a Date object.
+
+// MODIFICATION: Rewritten to try multiple API endpoints before falling back to local time.
 async function fetchUKTime() {
+  // An array of API URLs to try in order.
+  const TIME_API_URLS = [
+    'https://worldtimeapi.org/api/timezone/Europe/London',
+    'https://www.timeapi.io/api/Time/current/zone?timeZone=Europe/London'
+  ];
+
+  for (const url of TIME_API_URLS) {
     try {
-        const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/London');
-        if (!res.ok) throw new Error('Network response failed');
-        const data = await res.json();
-        const serverTime = new Date(data.datetime).getTime();
-        const localTime = Date.now();
-        timeOffset = serverTime - localTime;
-        console.log(`Time synchronized. Offset is ${timeOffset}ms.`);
+      console.log(`Attempting to fetch time from: ${url}`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Network response was not ok (status: ${res.status})`);
+      
+      const data = await res.json();
+
+      // Handle different response formats from different APIs
+      const timeString = data.datetime || data.dateTime; 
+      if (!timeString) throw new Error('Time property not found in API response.');
+
+      const serverTime = new Date(timeString).getTime();
+      const localTime = Date.now();
+      timeOffset = serverTime - localTime;
+      
+      console.log(`✅ Time successfully synchronized from ${url}. Offset is ${timeOffset}ms.`);
+      return; // Exit the function since we succeeded.
+
     } catch (e) {
-        console.error("Could not fetch UK time, using local time as fallback.", e);
-        timeOffset = 0; // Fallback to local time
+      console.warn(`⚠️ Failed to fetch from ${url}. Trying next fallback...`, e.message);
     }
+  }
+
+  // This part only runs if the loop finishes without a successful 'return'.
+  console.error("❌ All time APIs failed. Falling back to local time.");
+  timeOffset = 0;
 }
 
 // MODIFICATION: Uses `getCurrentTime()`
